@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "675670966173",
+    "project_id": "arcohol-20250609",
+    "storage_bucket": "arcohol-20250609.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:675670966173:android:13fc2b130c04080382f974",
+        "android_client_info": {
+          "package_name": "com.example.arcohol"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCCcQzPkM3o2DCftCtVnq4x7SAZvdWYX8w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
