@@ -27,7 +27,7 @@ class _HomePageState extends State<HomePage> {
           });
         },
       ),
-      backgroundColor: Colors.black,
+      backgroundColor: Color(0xFF1F1F1F),
       body: Center(
         child: Text(
           '메인 콘텐츠 영역 (추천, 인기, 판매 상품 등)',

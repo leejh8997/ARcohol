@@ -8,12 +8,12 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: Colors.black,
+      backgroundColor: Color(0xFF1F1F1F),
       leading: IconButton(
         icon: Icon(Icons.menu),
         onPressed: () => scaffoldKey.currentState?.openDrawer(),
       ),
-      title: Text('ARcohol', style: TextStyle(color: Colors.orangeAccent)),
+      title: Text('ARcohol', style: TextStyle(color: Color(0xFFFCD19C))),
       actions: [
         IconButton(onPressed: () {}, icon: Icon(Icons.shopping_cart)),
         IconButton(onPressed: () {}, icon: Icon(Icons.notifications)),
