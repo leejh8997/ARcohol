@@ -8,16 +8,26 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: Color(0xFF1F1F1F),
+      backgroundColor: const Color(0xFF1F1F1F),
+      centerTitle: true,
       leading: IconButton(
-        icon: Icon(Icons.menu),
+        icon: const Icon(Icons.menu, color: Color(0xFFBEB08B)),
         onPressed: () => scaffoldKey.currentState?.openDrawer(),
       ),
-      title: Text('ARcohol', style: TextStyle(color: Color(0xFFFCD19C))),
+      title: const Text('ARcohol', style: TextStyle(color: Color(0xFFE94E2B))),
       actions: [
-        IconButton(onPressed: () {}, icon: Icon(Icons.shopping_cart)),
-        IconButton(onPressed: () {}, icon: Icon(Icons.notifications)),
-        IconButton(onPressed: () {}, icon: Icon(Icons.account_circle)),
+        IconButton(
+          icon: const Icon(Icons.shopping_cart, color: Color(0xFFBEB08B)),
+          onPressed: () {
+            Navigator.of(context).pushNamed('/product'); // 장바구니 페이지로 이동
+          },
+        ),
+        IconButton(
+          icon: const Icon(Icons.account_circle, color: Color(0xFFBEB08B)),
+          onPressed: () {
+            Navigator.of(context).pushNamed('/mypage'); // 마이페이지로 이동
+          },
+        ),
       ],
     );
   }
@@ -29,31 +39,65 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
 
+  final bool isLoggedIn = true;
+
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      backgroundColor: Colors.black87,
+      backgroundColor: const Color(0xFF333333),
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          DrawerHeader(
-            decoration: BoxDecoration(color: Colors.black54),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Container(
+            height: 80,
+            margin: EdgeInsets.only(top: MediaQuery.of(context).padding.top), // 수동 처리
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            color: const Color(0xFF333333),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text("환영합니다", style: TextStyle(color: Colors.white)),
-                TextButton(onPressed: () {}, child: Text("로그인 / 로그아웃", style: TextStyle(color: Colors.orange)))
+                Expanded(
+                  child: Text(
+                    isLoggedIn ? "홍길동님 환영합니다." : "로그인 후 이용해주세요.",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(
+                    isLoggedIn ? Icons.logout : Icons.login,
+                    color: const Color(0xFFFCD19C),
+                  ),
+                  onPressed: () {
+                    // 로그인/로그아웃 처리
+                  },
+                ),
               ],
             ),
           ),
-          ListTile(title: Text('마이페이지', style: TextStyle(color: Colors.white)), onTap: () {}),
-          ListTile(title: Text('AR제조법', style: TextStyle(color: Colors.white)), onTap: () {}),
-          ListTile(title: Text('장바구니', style: TextStyle(color: Colors.white)), onTap: () {}),
-          ListTile(title: Text('판매', style: TextStyle(color: Colors.white)), onTap: () {}),
-          ListTile(title: Text('레시피', style: TextStyle(color: Colors.white)), onTap: () {}),
-          ListTile(title: Text('마이바', style: TextStyle(color: Colors.white)), onTap: () {}),
+          const Divider(color: Colors.grey),
+          _buildDrawerItem(context, Icons.person, '마이페이지', '/mypage'),
+          _buildDrawerItem(context, Icons.qr_code, 'AR제조법', '/ar'),
+          _buildDrawerItem(context, Icons.shopping_cart, '장바구니', '/product'),
+          _buildDrawerItem(context, Icons.sell, '판매', '/product'), // 판매와 장바구니 동일하게 처리 시
+          _buildDrawerItem(context, Icons.book, '레시피', '/recipe'),
+          _buildDrawerItem(context, Icons.local_bar, '마이바', '/mybar'),
         ],
       ),
+    );
+  }
+
+  Widget _buildDrawerItem(
+      BuildContext context, IconData icon, String label, String routeName) {
+    return ListTile(
+      leading: Icon(icon, color: const Color(0xFFFCD19C)),
+      title: Text(label, style: const TextStyle(color: Color(0xFFFCD19C))),
+      onTap: () {
+        Navigator.of(context).pop(); // 드로어 닫기
+        Navigator.of(context).pushReplacementNamed(routeName); // 페이지 이동
+      },
     );
   }
 }

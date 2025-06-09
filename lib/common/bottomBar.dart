@@ -9,9 +9,10 @@ class CustomBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(
-      backgroundColor: Colors.black,
-      selectedItemColor: Colors.orange,
-      unselectedItemColor: Colors.white54,
+      type: BottomNavigationBarType.fixed,
+      backgroundColor: const Color(0xFF333333),
+      selectedItemColor: const Color(0xFFA9986E),    // ← 진한 색상
+      unselectedItemColor: const Color(0xFFBEB08B),  // ← 기본 색상
       currentIndex: currentIndex,
       onTap: onTap,
       items: const [
