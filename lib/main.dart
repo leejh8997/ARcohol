@@ -1,4 +1,6 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'firebase_options.dart';
 import 'page/home.dart';
 import 'page/myBar.dart';
 import 'page/recipe.dart';
@@ -9,7 +11,13 @@ import 'common/myRecipe.dart';
 import 'common/wishList.dart';
 import 'common/buyProduct.dart';
 
-void main() => runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  runApp(const MyApp());
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -21,14 +29,17 @@ class MyApp extends StatelessWidget {
       home: const HomePage(),
       routes: {
         '/home': (context) => const HomePage(),
-        '/product': (context) => const ProductPage(),
+        '/mypage/edit': (context) => const MyPage(),
+        '/mypage/recipe': (context) => const MyRecipePage(),
+        '/mypage/orders': (context) => const BuyProductPage(),
         '/ar': (context) => const ArPage(),
+        '/wishList': (context) => const WishListPage(),
+        '/product': (context) => const ProductPage(),
         '/recipe': (context) => const RecipePage(),
         '/mybar': (context) => const MyBarPage(),
-        '/mypage': (context) => const MyPage(),
-        '/myRecipe': (context) => const MyPage(),
-        '/wishList': (context) => const MyPage(),
-        '/buyProduct': (context) => const MyPage(),
+
+
+
       },
     );
   }
