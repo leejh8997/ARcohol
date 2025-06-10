@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import '../page/home.dart';
+import '../page/myBar.dart';
+import '../page/recipe.dart';
+import '../page/arCamera.dart';
+import '../page/product.dart';
+import 'myPage.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -19,13 +25,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         IconButton(
           icon: const Icon(Icons.shopping_cart, color: Color(0xFFBEB08B)),
           onPressed: () {
-            Navigator.of(context).pushNamed('/product'); // 장바구니 페이지로 이동
+            _navigateWithoutAnimation(context, '/product');
           },
         ),
         IconButton(
           icon: const Icon(Icons.account_circle, color: Color(0xFFBEB08B)),
           onPressed: () {
-            Navigator.of(context).pushNamed('/mypage'); // 마이페이지로 이동
+            _navigateWithoutAnimation(context, '/mypage');
           },
         ),
       ],
@@ -38,7 +44,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
 class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
-
   final bool isLoggedIn = true;
 
   @override
@@ -50,7 +55,7 @@ class CustomDrawer extends StatelessWidget {
         children: [
           Container(
             height: 80,
-            margin: EdgeInsets.only(top: MediaQuery.of(context).padding.top), // 수동 처리
+            margin: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
             padding: const EdgeInsets.symmetric(horizontal: 16),
             color: const Color(0xFF333333),
             child: Row(
@@ -59,10 +64,7 @@ class CustomDrawer extends StatelessWidget {
                 Expanded(
                   child: Text(
                     isLoggedIn ? "홍길동님 환영합니다." : "로그인 후 이용해주세요.",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ),
                 IconButton(
@@ -81,7 +83,7 @@ class CustomDrawer extends StatelessWidget {
           _buildDrawerItem(context, Icons.person, '마이페이지', '/mypage'),
           _buildDrawerItem(context, Icons.qr_code, 'AR제조법', '/ar'),
           _buildDrawerItem(context, Icons.shopping_cart, '장바구니', '/product'),
-          _buildDrawerItem(context, Icons.sell, '판매', '/product'), // 판매와 장바구니 동일하게 처리 시
+          _buildDrawerItem(context, Icons.sell, '판매', '/product'),
           _buildDrawerItem(context, Icons.book, '레시피', '/recipe'),
           _buildDrawerItem(context, Icons.local_bar, '마이바', '/mybar'),
         ],
@@ -89,15 +91,33 @@ class CustomDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildDrawerItem(
-      BuildContext context, IconData icon, String label, String routeName) {
+  Widget _buildDrawerItem(BuildContext context, IconData icon, String label, String routeName) {
     return ListTile(
       leading: Icon(icon, color: const Color(0xFFFCD19C)),
       title: Text(label, style: const TextStyle(color: Color(0xFFFCD19C))),
       onTap: () {
-        Navigator.of(context).pop(); // 드로어 닫기
-        Navigator.of(context).pushReplacementNamed(routeName); // 페이지 이동
+        Navigator.of(context).pop();
+        _navigateWithoutAnimation(context, routeName);
       },
     );
   }
+}
+
+void _navigateWithoutAnimation(BuildContext context, String routeName) {
+  final routeWidgets = {
+    '/home': const HomePage(),
+    '/product': const ProductPage(),
+    '/ar': const ArPage(),
+    '/recipe': const RecipePage(),
+    '/mybar': const MyBarPage(),
+    '/mypage': const MyPage(),
+  };
+
+  final widget = routeWidgets[routeName] ?? const HomePage();
+
+  Navigator.of(context).pushReplacement(PageRouteBuilder(
+    pageBuilder: (_, __, ___) => widget,
+    transitionDuration: Duration.zero,
+    reverseTransitionDuration: Duration.zero,
+  ));
 }
