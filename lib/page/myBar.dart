@@ -12,6 +12,7 @@ class MyBarPage extends StatefulWidget {
 class _MyBarPageState extends State<MyBarPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _currentIndex = 0;
+  List<String> list = [];
 
   @override
   Widget build(BuildContext context) {
@@ -28,12 +29,28 @@ class _MyBarPageState extends State<MyBarPage> {
         },
       ),
       backgroundColor: Color(0xFF1F1F1F),
-      body: Center(
-        child: Text(
-          'MyBar 페이지 입니다.',
-          style: TextStyle(color: Colors.white),
+      body: Padding(
+        padding: EdgeInsets.all(10),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(child: Text("재료 목록", style: TextStyle(color: Colors.white),)),
+                ElevatedButton(
+                  onPressed: (){},
+                  child: Text("마이재료")
+                )
+              ],
+            ),
+            ListView.builder(
+              itemCount: list.length,
+                itemBuilder: (context, index) {
+
+                },
+            )
+          ],
         ),
-      ),
+      )
     );
   }
 }
