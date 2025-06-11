@@ -14,6 +14,7 @@ import 'common/myPage.dart';
 import 'common/myRecipe.dart';
 import 'common/wishList.dart';
 import 'common/buyProduct.dart';
+import 'common/profileEdit.dart ';
 import 'user/login.dart';
 
 void main() async {
