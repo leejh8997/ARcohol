@@ -2,19 +2,16 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
-    <script>
-        function sample() {
-          new daum.Postcode({
-            oncomplete: function(data) {
-              const fullAddress = data.address;
-              // Flutter로 주소 전송
-              window.flutter_inappwebview.callHandler('onAddressSelected', fullAddress);
-            }
-          }).open();
-        }
-        window.onload = sample;
-    </script>
+    <script src="https://ssl.daumcdn.net/dmaps/map_js_init/postcode.v2.js"></script>
 </head>
-<body></body>
+<body>
+<div id="wrap" style="width:100%;height:100%;"></div>
+<script>
+    new daum.Postcode({
+      oncomplete: function(data) {
+        window.flutter_inappwebview.callHandler('onAddressSelected', data.address);
+      }
+    }).embed(document.getElementById("wrap"));
+</script>
+</body>
 </html>
