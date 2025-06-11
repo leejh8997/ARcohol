@@ -12,6 +12,49 @@ class JoinPage extends StatefulWidget {
 
 class _JoinPageState extends State<JoinPage> {
   final _formKey = GlobalKey<FormState>();
+  final List<String> termsTitles = [
+    '[필수] 만 19세 이상',
+    '[필수] ARcohol 개인정보 수집 및 이용',
+    '[필수] ARcohol 제 3자 정보제공',
+    '[필수] 마켓 개인정보 수집 및 이용',
+  ];
+
+  final List<String> termsDetails = [
+    '''
+만 19세 이상이어야 서비스를 이용할 수 있습니다.
+회원가입 시 생년월일을 기준으로 성인 여부를 확인하며,
+만 19세 미만은 본 서비스를 이용하실 수 없습니다.
+''',
+    '''
+ARcohol은 서비스 제공을 위해 다음과 같은 개인정보를 수집합니다:
+- 수집 항목: 이름, 이메일, 전화번호, 생년월일 등
+- 수집 목적: 회원 관리, 본인 인증, 맞춤 서비스 제공 등
+- 보유 기간: 회원 탈퇴 시까지 또는 법정 보유기간
+
+자세한 사항은 개인정보처리방침을 참고해주세요.
+''',
+    '''
+ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 제공합니다:
+- 제공 대상: 결제 대행사, 배송 업체 등
+- 제공 항목: 이름, 연락처, 주소, 주문 정보 등
+- 제공 목적: 결제 처리 및 상품 배송
+
+제공되는 정보는 최소한으로 제한되며, 동의 없이 사용되지 않습니다.
+''',
+    '''
+마켓 이용 시 다음과 같은 개인정보가 수집 및 이용됩니다:
+- 목적: 상품 주문 및 배송, 고객 지원
+- 항목: 수취인 이름, 전화번호, 주소 등
+- 보유 기간: 관련 법령에 따른 보관 기한 후 즉시 파기
+
+보다 안전한 서비스 이용을 위해 ARcohol은 개인정보 보호에 최선을 다합니다.
+''',
+  ];
+
+
+
+  List<bool> checkedList = [false, false, false, false];
+  bool allChecked = false;
 
   final _emailController = TextEditingController();
   final _pwController = TextEditingController();
@@ -234,8 +277,78 @@ class _JoinPageState extends State<JoinPage> {
     return 'user$nextNumber';
   }
 
+  void showTermDetailModal(int index) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.7,
+          maxChildSize: 0.95,
+          minChildSize: 0.5,
+          builder: (_, scrollController) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              child: Column(
+                children: [
+                  // ✅ 닫기 버튼 영역
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        termsTitles[index],
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context), // ✅ 모달 닫기
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // ✅ 본문 내용 (스크롤)
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      child: Text(
+                        termsDetails[index],
+                        style: const TextStyle(
+                          fontSize: 15,
+                          height: 1.6,
+                          color: Colors.black87,
+                        ),
+                        softWrap: true,
+                        overflow: TextOverflow.visible,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (checkedList.contains(false)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('모든 약관에 동의해주세요')),
+      );
+      return;
+    }
     if (!emailChecked || !isEmailUnique) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('이메일 중복 확인을 해주세요')));
       return;
@@ -273,7 +386,7 @@ class _JoinPageState extends State<JoinPage> {
       final userDocId = await getNextUserId();
 
       // ✅ Firestore에 회원 정보 저장
-      await _firestore.collection('users').doc(userDocId).set({
+      await _firestore.collection('users').doc(uid).set({
         'uid': userDocId,
         'email': email,
         'phone': phone,
@@ -370,6 +483,75 @@ class _JoinPageState extends State<JoinPage> {
     );
   }
 
+  Widget buildTermsSection() {
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A2A2A),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey.shade700),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CheckboxListTile(
+            value: allChecked,
+            title: const Text('모두 동의합니다'),
+            onChanged: (value) {
+              setState(() {
+                allChecked = value ?? false;
+                for (int i = 0; i < checkedList.length; i++) {
+                  checkedList[i] = allChecked;
+                }
+              });
+            },
+            controlAffinity: ListTileControlAffinity.leading,
+          ),
+          const Divider(color: Colors.grey),
+          ...List.generate(termsTitles.length, (index) {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Checkbox(
+                            value: checkedList[index],
+                            onChanged: (val) {
+                              setState(() {
+                                checkedList[index] = val ?? false;
+                                allChecked = checkedList.every((v) => v);
+                              });
+                            },
+                          ),
+                          Expanded(
+                            child: Text(
+                              termsTitles[index],
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onPressed: () => showTermDetailModal(index),
+                ),
+              ],
+            );
+
+          }),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final orange = const Color(0xFFE94E2B);
@@ -457,7 +639,9 @@ class _JoinPageState extends State<JoinPage> {
                   minimumSize: const Size(double.infinity, 48),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
+              buildTermsSection(),
+              SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _submit,
                 style: ElevatedButton.styleFrom(

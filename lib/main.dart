@@ -8,6 +8,7 @@ import 'page/arCamera.dart';
 import 'page/product.dart';
 import 'page/recipeView.dart';
 import 'page/productView.dart';
+import 'common/profileEdit.dart';
 import 'page/inventory.dart';
 import 'common/myPage.dart';
 import 'common/myRecipe.dart';

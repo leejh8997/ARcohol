@@ -4,6 +4,7 @@ import 'join.dart';
 import '/page/home.dart';
 import 'find_Id.dart';
 import 'find_Pw.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -34,6 +35,17 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       await _auth.signInWithEmailAndPassword(email: email, password: pw);
+
+      // ✅ 이메일 저장 여부 처리
+      final prefs = await SharedPreferences.getInstance();
+      if (_rememberId) {
+        await prefs.setString('saved_email', email);
+        await prefs.setBool('remember_email', true);
+      } else {
+        await prefs.remove('saved_email');
+        await prefs.setBool('remember_email', false);
+      }
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const HomePage()),
@@ -69,6 +81,24 @@ class _LoginPageState extends State<LoginPage> {
       icon: Icon(icon, color: Colors.black),
       label: Text(text, style: const TextStyle(fontWeight: FontWeight.bold)),
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedEmail();
+  }
+  void _loadSavedEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedEmail = prefs.getString('saved_email') ?? '';
+    final remember = prefs.getBool('remember_email') ?? false;
+
+    setState(() {
+      _rememberId = remember;
+      if (remember) {
+        _emailController.text = savedEmail;
+      }
+    });
   }
 
   @override
