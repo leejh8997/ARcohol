@@ -5,9 +5,11 @@ import '../page/recipe.dart';
 import '../page/arCamera.dart';
 import '../page/product.dart';
 import 'myPage.dart';
+import 'profileEdit.dart';
 import 'myRecipe.dart';
 import 'buyProduct.dart';
 import 'wishList.dart';
+
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -36,7 +38,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         IconButton(
           icon: const Icon(Icons.shopping_cart, color: Color(0xFFBEB08B)),
           onPressed: () {
-            _navigateWithoutAnimation(context, '/product');
+            _navigateWithoutAnimation(context, '/wishList');
           },
         ),
         IconButton(
@@ -53,16 +55,10 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => Size.fromHeight(kToolbarHeight);
 }
 
-class CustomDrawer extends StatefulWidget {
+class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
 
-  @override
-  State<CustomDrawer> createState() => _CustomDrawerState();
-}
-
-class _CustomDrawerState extends State<CustomDrawer> {
   final bool isLoggedIn = false;
-  bool _isMyPageExpanded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -98,26 +94,10 @@ class _CustomDrawerState extends State<CustomDrawer> {
           ),
           const Divider(color: Colors.grey),
 
-          // ▶ 마이페이지 + 하위 메뉴
-          ListTile(
-            leading: Icon(_isMyPageExpanded ? Icons.remove : Icons.add, color: const Color(0xFFFCD19C)),
-            title: const Text('마이페이지', style: TextStyle(color: Color(0xFFFCD19C))),
-            onTap: () {
-              setState(() {
-                _isMyPageExpanded = !_isMyPageExpanded;
-              });
-            },
-          ),
-          if (_isMyPageExpanded)
-            Column(
-              children: [
-                _buildSubItem(context, Icons.edit, '내정보수정', '/mypage/edit'),
-                _buildSubItem(context, Icons.receipt_long, '마이 레시피', '/mypage/recipe'),
-                _buildSubItem(context, Icons.local_shipping, '구매내역 / 배송조회', '/mypage/orders'),
-              ],
-            ),
+          /// ✅ 마이페이지 단일 항목으로 변경
+          _buildDrawerItem(context, Icons.person, '마이페이지', '/mypage'),
 
-          // ▶ 기타 메뉴
+          // 기타 메뉴
           _buildDrawerItem(context, Icons.qr_code, 'AR제조법', '/ar'),
           _buildDrawerItem(context, Icons.shopping_cart, '장바구니', '/product'),
           _buildDrawerItem(context, Icons.sell, '판매', '/product'),
@@ -138,26 +118,13 @@ class _CustomDrawerState extends State<CustomDrawer> {
       },
     );
   }
-
-  Widget _buildSubItem(BuildContext context, IconData icon, String label, String routeName) {
-    return ListTile(
-      contentPadding: const EdgeInsets.only(left: 48, right: 16),
-      leading: Icon(icon, color: const Color(0xFFFCD19C)),
-      title: Text(label, style: const TextStyle(color: Color(0xFFFCD19C))),
-      onTap: () {
-        Navigator.of(context).pop();
-        _navigateWithoutAnimation(context, routeName);
-      },
-    );
-  }
 }
+
 
 void _navigateWithoutAnimation(BuildContext context, String routeName) {
   final routeWidgets = {
     '/home': const HomePage(),
-    '/mypage/edit': const MyPage(),
-    '/mypage/recipe': const MyRecipePage(),         // ← 구현 필요
-    '/mypage/orders': const BuyProductPage(),       // ← 구현 필요
+    '/mypage': const MyPage(),
     '/ar': const ArPage(),
     '/wishList': const WishListPage(),
     '/product': const ProductPage(),

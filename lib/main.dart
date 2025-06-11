@@ -6,6 +6,9 @@ import 'page/myBar.dart';
 import 'page/recipe.dart';
 import 'page/arCamera.dart';
 import 'page/product.dart';
+import 'page/recipeView.dart';
+import 'page/productView.dart';
+import 'page/inventory.dart';
 import 'common/myPage.dart';
 import 'common/myRecipe.dart';
 import 'common/wishList.dart';
@@ -57,14 +60,18 @@ class MyApp extends StatelessWidget {
       routes: {
         '/home': (context) => const HomePage(),
         '/login': (context) => const LoginPage(),
-        '/mypage/edit': (context) => const MyPage(),
+        '/mypage': (context) => const MyPage(),
+        '/mypage/edit': (context) => const ProfileEditPage(),
         '/mypage/recipe': (context) => const MyRecipePage(),
         '/mypage/orders': (context) => const BuyProductPage(),
         '/ar': (context) => const ArPage(),
         '/wishList': (context) => const WishListPage(),
         '/product': (context) => const ProductPage(),
+        '/product/view': (context) => const ProductViewPage(),
         '/recipe': (context) => const RecipePage(),
+        '/recipe/view': (context) => const RecipeViewPage(),
         '/mybar': (context) => const MyBarPage(),
+        '/inventory': (context) => const InventoryPage(),
       },
     );
   }
