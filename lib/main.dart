@@ -13,6 +13,8 @@ import 'common/myPage.dart';
 import 'common/myRecipe.dart';
 import 'common/wishList.dart';
 import 'common/buyProduct.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'common/profileEdit.dart';
 
 void main() async {
