@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import '../common/appBar.dart';
-import '../common/bottomBar.dart';
+import 'appBar.dart';
+import 'bottomBar.dart';
 
-class InventoryPage extends StatefulWidget {
-  const InventoryPage({super.key});
+class MyPage extends StatefulWidget {
+  const MyPage({super.key});
 
   @override
-  State<InventoryPage> createState() => _InventoryPageState();
+  State<MyPage> createState() => _MyPageState();
 }
 
-class _InventoryPageState extends State<InventoryPage> {
+class _MyPageState extends State<MyPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _currentIndex = 0;
 
@@ -30,7 +30,7 @@ class _InventoryPageState extends State<InventoryPage> {
       backgroundColor: Color(0xFF1F1F1F),
       body: Center(
         child: Text(
-          'Inventory 페이지 입니다.',
+          'My 페이지 입니다.',
           style: TextStyle(color: Colors.white),
         ),
       ),
