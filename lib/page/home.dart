@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 import '../common/appBar.dart';
 import '../common/bottomBar.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
-
   @override
   State<HomePage> createState() => _HomePageState();
 }
@@ -17,11 +18,26 @@ class _HomePageState extends State<HomePage> {
   List<DocumentSnapshot> recommendedList = [];
   List<DocumentSnapshot> popularList = [];
   List<DocumentSnapshot> productList = [];
-  int recommendedPage = 1;
+
+  bool hasMoreRecommended = true;
+  bool hasMorePopular = true;
+  bool hasMoreProduct = true;
+
+  int totalRecommendedCount = 0;
+  int totalPopularCount = 0;
+  int totalProductsCount = 0;
 
   @override
   void initState() {
     super.initState();
+    fetchInitialData();
+  }
+
+  Future<void> fetchInitialData() async {
+    await fetchRecommendedTotalCounts();
+    await fetchPopularTotalCounts();
+    await fetchProductsTotalCounts();
+
     fetchBanner();
     fetchRecommended();
     fetchPopular();
@@ -36,34 +52,75 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  Future<void> fetchRecommendedTotalCounts() async {
+    final snap = await FirebaseFirestore.instance.collection('recipe').get();
+    totalRecommendedCount = snap.docs.length;
+  }
+
   Future<void> fetchRecommended() async {
     // TODO: 마이바 재료 기반 필터링 로직 추가
-    final snap = await FirebaseFirestore.instance
+    Query query = FirebaseFirestore.instance
         .collection('recipe')
-        .limit(recommendedPage * 5)
-        .get();
+        .limit(5);
+
+    if (recommendedList.isNotEmpty) {
+      query = query.startAfterDocument(recommendedList.last);
+    }
+
+    final snap = await query.get();
     setState(() {
-      recommendedList = snap.docs;
+      recommendedList.addAll(snap.docs);
+      if (recommendedList.length >= totalRecommendedCount) {
+        hasMoreRecommended = false;
+      }
     });
+  }
+
+  Future<void> fetchPopularTotalCounts() async {
+    final snap = await FirebaseFirestore.instance.collection('recipe').get();
+    totalPopularCount = snap.docs.length;
   }
 
   Future<void> fetchPopular() async {
-    final snap = await FirebaseFirestore.instance
+    Query query = FirebaseFirestore.instance
         .collection('recipe')
         .orderBy('likeCount', descending: true)
-        .limit(5)
-        .get();
-    print('🔥 인기 상품 ${snap.docs.length}개 가져옴');
+        .limit(5);
+
+    if (popularList.isNotEmpty) {
+      query = query.startAfterDocument(popularList.last);
+    }
+
+    final snap = await query.get();
     setState(() {
-      popularList = snap.docs;
+      popularList.addAll(snap.docs);
+      if (popularList.length >= totalPopularCount) {
+        hasMorePopular = false;
+      }
     });
   }
 
-  Future<void> fetchProducts() async {
+  Future<void> fetchProductsTotalCounts() async {
     final snap = await FirebaseFirestore.instance.collection('product').get();
-    snap.docs.shuffle();
+    totalProductsCount = snap.docs.length;
+  }
+
+  Future<void> fetchProducts() async {
+    Query query = FirebaseFirestore.instance
+        .collection('product')
+        .limit(5);
+
+    if (productList.isNotEmpty) {
+      query = query.startAfterDocument(productList.last);
+    }
+
+    final snap = await query.get();
     setState(() {
-      productList = snap.docs.take(5).toList();
+      productList.addAll(snap.docs);
+
+      if (productList.length >= totalProductsCount) {
+        hasMoreProduct = false;
+      }
     });
   }
 
@@ -86,8 +143,8 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget buildSection(String title, IconData icon, List<DocumentSnapshot> list, VoidCallback? onMore) {
-    final items = list.take(5).toList();
+  Widget buildSection(String title, IconData icon, List<DocumentSnapshot> list, VoidCallback? onMore, bool showMore) {
+    final items = list;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -104,7 +161,7 @@ class _HomePageState extends State<HomePage> {
           child: Row(
             children: [
               ...items.map(buildCard).toList(),
-              if (onMore != null)
+              if (onMore != null && showMore)
                 GestureDetector(
                   onTap: onMore,
                   child: Container(
@@ -156,22 +213,12 @@ class _HomePageState extends State<HomePage> {
                 }).toList(),
               ),
             const SizedBox(height: 20),
-            buildSection('추천 상품', Icons.recommend, recommendedList, () {
-              setState(() {
-                recommendedPage++;
-                fetchRecommended();
-              });
-            }),
+            buildSection('추천 상품', Icons.recommend, recommendedList, () => fetchRecommended(), hasMoreRecommended,),
             const SizedBox(height: 20),
-            buildSection('🔥 인기 상품', Icons.local_fire_department, popularList, fetchPopular),
+            buildSection('🔥 인기 상품', Icons.local_fire_department, popularList, fetchPopular, hasMorePopular,),
             const SizedBox(height: 20),
-            buildSection('🛒 판매 상품', Icons.shopping_bag, productList, fetchProducts),
+            buildSection('🛒 판매 상품', Icons.shopping_bag, productList, fetchProducts, hasMoreProduct,),
           ],
-      backgroundColor: Colors.black,
-      body: Center(
-        child: Text(
-          '메인 콘텐츠 영역 (추천, 인기, 판매 상품 등)',
-          style: TextStyle(color: Colors.white),
         ),
       ),
     );
