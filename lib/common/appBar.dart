@@ -5,6 +5,11 @@ import '../page/recipe.dart';
 import '../page/arCamera.dart';
 import '../page/product.dart';
 import 'myPage.dart';
+import 'profileEdit.dart';
+import 'myRecipe.dart';
+import 'buyProduct.dart';
+import 'wishList.dart';
+
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -20,12 +25,20 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         icon: const Icon(Icons.menu, color: Color(0xFFBEB08B)),
         onPressed: () => scaffoldKey.currentState?.openDrawer(),
       ),
-      title: const Text('ARcohol', style: TextStyle(color: Color(0xFFE94E2B))),
+      title: GestureDetector(
+        onTap: () {
+          _navigateWithoutAnimation(context, '/home');
+        },
+        child: const Text(
+          'ARcohol',
+          style: TextStyle(color: Color(0xFFE94E2B)),
+        ),
+      ),
       actions: [
         IconButton(
           icon: const Icon(Icons.shopping_cart, color: Color(0xFFBEB08B)),
           onPressed: () {
-            _navigateWithoutAnimation(context, '/product');
+            _navigateWithoutAnimation(context, '/wishList');
           },
         ),
         IconButton(
@@ -44,7 +57,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
 class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
-  final bool isLoggedIn = true;
+
+  final bool isLoggedIn = false;
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +71,6 @@ class CustomDrawer extends StatelessWidget {
             height: 80,
             margin: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            color: const Color(0xFF333333),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -80,7 +93,11 @@ class CustomDrawer extends StatelessWidget {
             ),
           ),
           const Divider(color: Colors.grey),
+
+          /// ✅ 마이페이지 단일 항목으로 변경
           _buildDrawerItem(context, Icons.person, '마이페이지', '/mypage'),
+
+          // 기타 메뉴
           _buildDrawerItem(context, Icons.qr_code, 'AR제조법', '/ar'),
           _buildDrawerItem(context, Icons.shopping_cart, '장바구니', '/product'),
           _buildDrawerItem(context, Icons.sell, '판매', '/product'),
@@ -103,14 +120,16 @@ class CustomDrawer extends StatelessWidget {
   }
 }
 
+
 void _navigateWithoutAnimation(BuildContext context, String routeName) {
   final routeWidgets = {
     '/home': const HomePage(),
-    '/product': const ProductPage(),
+    '/mypage': const MyPage(),
     '/ar': const ArPage(),
+    '/wishList': const WishListPage(),
+    '/product': const ProductPage(),
     '/recipe': const RecipePage(),
     '/mybar': const MyBarPage(),
-    '/mypage': const MyPage(),
   };
 
   final widget = routeWidgets[routeName] ?? const HomePage();

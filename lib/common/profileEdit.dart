@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'appBar.dart';
 import 'bottomBar.dart';
 
-class WishListPage extends StatefulWidget {
-  const WishListPage({super.key});
+class ProfileEditPage extends StatefulWidget {
+  const ProfileEditPage({super.key});
 
   @override
-  State<WishListPage> createState() => _WishListPageState();
+  State<ProfileEditPage> createState() => _ProfileEditPageState();
 }
 
-class _WishListPageState extends State<WishListPage> {
+class _ProfileEditPageState extends State<ProfileEditPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _currentIndex = 0;
 
@@ -30,7 +30,7 @@ class _WishListPageState extends State<WishListPage> {
       backgroundColor: Color(0xFF1F1F1F),
       body: Center(
         child: Text(
-          'WishshList 페이지 입니다.',
+          'ProfileEdit 페이지 입니다.',
           style: TextStyle(color: Colors.white),
         ),
       ),

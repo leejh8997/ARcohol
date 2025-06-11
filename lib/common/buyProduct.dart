@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'appBar.dart';
 import 'bottomBar.dart';
 
-class buyProductPage extends StatefulWidget {
-  const buyProductPage({super.key});
+class BuyProductPage extends StatefulWidget {
+  const BuyProductPage({super.key});
 
   @override
-  State<buyProductPage> createState() => _buyProductPageState();
+  State<BuyProductPage> createState() => _BuyProductPageState();
 }
 
-class _buyProductPageState extends State<buyProductPage> {
+class _BuyProductPageState extends State<BuyProductPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _currentIndex = 0;
 
