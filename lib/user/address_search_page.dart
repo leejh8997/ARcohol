@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 class AddressSearchPage extends StatefulWidget {
   const AddressSearchPage({super.key});
@@ -9,47 +9,27 @@ class AddressSearchPage extends StatefulWidget {
 }
 
 class _AddressSearchPageState extends State<AddressSearchPage> {
-  late InAppWebViewController webViewController;
+  late final WebViewController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..addJavaScriptChannel(
+        'onAddressSelected',
+        onMessageReceived: (message) {
+          Navigator.pop(context, message.message); // 선택된 주소 돌려주기
+        },
+      )
+      ..loadFlutterAsset('assets/kakao_address.html');
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('주소 검색')),
-      body: InAppWebView(
-        initialUrlRequest: URLRequest(
-          url: WebUri('https://postcode.map.daum.net'),
-        ),
-        initialOptions: InAppWebViewGroupOptions(
-          crossPlatform: InAppWebViewOptions(
-            javaScriptEnabled: true,
-          ),
-          android: AndroidInAppWebViewOptions(
-            useHybridComposition: true,
-          ),
-          ios: IOSInAppWebViewOptions(
-            allowsInlineMediaPlayback: true,
-          ),
-        ),
-        onWebViewCreated: (controller) {
-          webViewController = controller;
-
-          controller.addJavaScriptHandler(
-            handlerName: 'onAddressSelected',
-            callback: (args) {
-              Navigator.pop(context, args[0]);
-            },
-          );
-        },
-        onLoadStop: (controller, url) async {
-          await controller.evaluateJavascript(source: """
-            new daum.Postcode({
-              oncomplete: function(data) {
-                window.flutter_inappwebview.callHandler('onAddressSelected', [data.address]);
-              }
-            }).open();
-          """);
-        },
-      ),
+      body: WebViewWidget(controller: _controller),
     );
   }
 }
