@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../page/home.dart';
 import '../page/myBar.dart';
 import '../page/recipe.dart';
 import '../page/arCamera.dart';
 import '../page/product.dart';
 import 'myPage.dart';
+import 'profileEdit.dart';
 import 'myRecipe.dart';
 import 'buyProduct.dart';
 import 'wishList.dart';
+
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -36,7 +40,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         IconButton(
           icon: const Icon(Icons.shopping_cart, color: Color(0xFFBEB08B)),
           onPressed: () {
-            _navigateWithoutAnimation(context, '/product');
+            _navigateWithoutAnimation(context, '/wishList');
           },
         ),
         IconButton(
@@ -61,11 +65,37 @@ class CustomDrawer extends StatefulWidget {
 }
 
 class _CustomDrawerState extends State<CustomDrawer> {
-  final bool isLoggedIn = false;
-  bool _isMyPageExpanded = false;
+  User? user = FirebaseAuth.instance.currentUser;
+  String? userName;
+
+  @override
+  void initState() {
+    super.initState();
+    print('📌 initState() 실행됨');
+    _loadUserName();
+  }
+
+  Future<void> _loadUserName() async {
+    print('📌 _loadUserName 시작'); // ✅ 함수 진입 확인
+    if (user != null) {
+      print('📌 현재 로그인된 사용자 uid: ${user!.uid}');
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user!.uid).get();
+
+      final fetchedName = doc['name'];
+      print('✅ Firestore에서 가져온 name: $fetchedName');
+
+      setState(() {
+        userName = fetchedName ?? '사용자';
+      });
+    } else {
+      print('❌ 현재 로그인된 사용자가 없습니다.');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isLoggedIn = user != null;
+
     return Drawer(
       backgroundColor: const Color(0xFF333333),
       child: ListView(
@@ -80,44 +110,29 @@ class _CustomDrawerState extends State<CustomDrawer> {
               children: [
                 Expanded(
                   child: Text(
-                    isLoggedIn ? "홍길동님 환영합니다." : "로그인 후 이용해주세요.",
+                    "$userName님 환영합니다." ,
                     style: const TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ),
                 IconButton(
                   icon: Icon(
-                    isLoggedIn ? Icons.logout : Icons.login,
+                     Icons.logout,
                     color: const Color(0xFFFCD19C),
                   ),
-                  onPressed: () {
-                    // 로그인/로그아웃 처리
+                  onPressed: () async {
+                    if (isLoggedIn) {
+                      await FirebaseAuth.instance.signOut();
+                      if (context.mounted) {
+                        Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+                      }
+                    }
                   },
                 ),
               ],
             ),
           ),
           const Divider(color: Colors.grey),
-
-          // ▶ 마이페이지 + 하위 메뉴
-          ListTile(
-            leading: Icon(_isMyPageExpanded ? Icons.remove : Icons.add, color: const Color(0xFFFCD19C)),
-            title: const Text('마이페이지', style: TextStyle(color: Color(0xFFFCD19C))),
-            onTap: () {
-              setState(() {
-                _isMyPageExpanded = !_isMyPageExpanded;
-              });
-            },
-          ),
-          if (_isMyPageExpanded)
-            Column(
-              children: [
-                _buildSubItem(context, Icons.edit, '내정보수정', '/mypage/edit'),
-                _buildSubItem(context, Icons.receipt_long, '마이 레시피', '/mypage/recipe'),
-                _buildSubItem(context, Icons.local_shipping, '구매내역 / 배송조회', '/mypage/orders'),
-              ],
-            ),
-
-          // ▶ 기타 메뉴
+          _buildDrawerItem(context, Icons.person, '마이페이지', '/mypage'),
           _buildDrawerItem(context, Icons.qr_code, 'AR제조법', '/ar'),
           _buildDrawerItem(context, Icons.shopping_cart, '장바구니', '/product'),
           _buildDrawerItem(context, Icons.sell, '판매', '/product'),
@@ -138,31 +153,22 @@ class _CustomDrawerState extends State<CustomDrawer> {
       },
     );
   }
-
-  Widget _buildSubItem(BuildContext context, IconData icon, String label, String routeName) {
-    return ListTile(
-      contentPadding: const EdgeInsets.only(left: 48, right: 16),
-      leading: Icon(icon, color: const Color(0xFFFCD19C)),
-      title: Text(label, style: const TextStyle(color: Color(0xFFFCD19C))),
-      onTap: () {
-        Navigator.of(context).pop();
-        _navigateWithoutAnimation(context, routeName);
-      },
-    );
-  }
 }
+
 
 void _navigateWithoutAnimation(BuildContext context, String routeName) {
   final routeWidgets = {
     '/home': const HomePage(),
-    '/mypage/edit': const MyPage(),
-    '/mypage/recipe': const MyRecipePage(),         // ← 구현 필요
-    '/mypage/orders': const BuyProductPage(),       // ← 구현 필요
+    '/mypage': const MyPage(),
+    '/mypage/edit': const ProfileEditPage(),
+    '/mypage/recipe': const MyRecipePage(),
+    '/mypage/orders': const BuyProductPage(),
     '/ar': const ArPage(),
     '/wishList': const WishListPage(),
     '/product': const ProductPage(),
     '/recipe': const RecipePage(),
     '/mybar': const MyBarPage(),
+
   };
 
   final widget = routeWidgets[routeName] ?? const HomePage();
