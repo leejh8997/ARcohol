@@ -26,3 +26,6 @@ plugins {
 }
 
 include(":app")
+include(":flutter_unity_widget")
+include(":unityLibrary", ":unityLibrary:xrmanifest.androidlib")
+project(":unityLibrary").projectDir = File(rootDir, "unityLibrary")
