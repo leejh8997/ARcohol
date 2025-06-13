@@ -70,7 +70,7 @@ class MyPage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const RecipeViewPage(), // 필요시 id 넘기기
+                        builder: (_) => RecipeViewPage(recipeId: recipe['id']!), // 필요시 id 넘기기
                       ),
                     );
                   },
