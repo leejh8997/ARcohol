@@ -156,8 +156,8 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
                         onPressed: () => setSheetState(() => quantity++),
                       ),
                       const Spacer(),
-                      Text('10%', style: TextStyle(color: primaryColor)),
-                      const SizedBox(width: 6),
+                      // Text('10%', style: TextStyle(color: primaryColor)),
+                      // const SizedBox(width: 6),
                       Text('${_formatPrice(price)}원', style: const TextStyle(color: Colors.white)),
                     ],
                   ),
@@ -165,8 +165,8 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('총 $quantity개 상품\n배송비 2,500원', style: const TextStyle(color: Colors.white)),
-                      Text('${_formatPrice(quantity * price + 2500)}원', style: TextStyle(color: primaryColor)),
+                      Text('총 $quantity개 상품', style: const TextStyle(color: Colors.white)),
+                      Text('${_formatPrice(quantity * price )}원', style: TextStyle(color: primaryColor)),
                     ],
                   ),
                   const SizedBox(height: 10),
