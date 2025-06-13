@@ -1,6 +1,8 @@
-import 'package:firebase_core/firebase_core.dart';
+// main.dart
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+
 import 'page/home.dart';
 import 'page/myBar.dart';
 import 'page/recipe.dart';
@@ -8,13 +10,15 @@ import 'page/arCamera.dart';
 import 'page/product.dart';
 import 'page/recipeView.dart';
 import 'page/productView.dart';
-import 'common/profileEdit.dart';
 import 'page/inventory.dart';
+
 import 'common/myPage.dart';
 import 'common/myRecipe.dart';
 import 'common/wishList.dart';
 import 'common/buyProduct.dart';
+import 'common/profileEdit.dart';
 import 'user/login.dart';
+import 'user/join.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,10 +61,12 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const LoginPage(),
+      initialRoute: '/', // 시작 라우트
       routes: {
-        '/home': (context) => const HomePage(),
+        '/': (context) => const LoginPage(), // 초기 화면을 LoginPage로 설정
         '/login': (context) => const LoginPage(),
+        '/join': (context) => const JoinPage(),
+        '/home': (context) => const HomePage(),
         '/mypage': (context) => const MyPage(),
         '/mypage/edit': (context) => const ProfileEditPage(),
         '/mypage/recipe': (context) => const MyRecipePage(),
@@ -68,7 +74,7 @@ class MyApp extends StatelessWidget {
         '/ar': (context) => const ArPage(),
         '/wishList': (context) => const WishListPage(),
         '/product': (context) => const ProductPage(),
-        '/product/view': (context) => const ProductViewPage(),
+        '/product/view': (context) => const ProductViewPage(productId: '',),
         '/recipe': (context) => const RecipePage(),
         '/recipe/view': (context) {
           final args = ModalRoute.of(context)!.settings.arguments as String;

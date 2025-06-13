@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:portone_flutter/model/certification_data.dart';
+import 'package:portone_flutter/portone_flutter.dart';
+import 'address_search_page.dart';
 import 'login.dart';
 
 class JoinPage extends StatefulWidget {
@@ -51,8 +54,6 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
 ''',
   ];
 
-
-
   List<bool> checkedList = [false, false, false, false];
   bool allChecked = false;
 
@@ -62,12 +63,15 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
   final _phoneController = TextEditingController();
   final _birthController = TextEditingController();
   final _nameController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _addressDetailController = TextEditingController();
 
   bool isEmailUnique = true;
   bool emailChecked = false;
   bool isPhoneVerified = false;
   bool isAdultValid = false;
   bool isBirthValid = true;
+  bool isCertified = false;
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -133,12 +137,91 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
       final birthDate = DateTime.parse(birthString);
       final today = DateTime.now();
       int age = today.year - birthDate.year;
-      if (today.month < birthDate.month || (today.month == birthDate.month && today.day < birthDate.day)) {
+      if (today.month < birthDate.month ||
+          (today.month == birthDate.month && today.day < birthDate.day)) {
         age--;
       }
       return age >= 19;
     } catch (_) {
       return false;
+    }
+  }
+
+  void _searchAddress() async {
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const AddressSearchPage()),
+    );
+
+    if (!mounted) return;
+
+    if (result != null && result.isNotEmpty) {
+      setState(() {
+        _addressController.text = result;
+      });
+    } else {
+      print("❌ 주소 검색 결과가 null이거나 빈 값입니다.");
+    }
+  }
+
+  Future<void> startCertification() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => IamportCertification(
+          userCode: "imp10391904",
+          data: CertificationData(
+            merchantUid: "mid_${DateTime.now().millisecondsSinceEpoch}",
+            mRedirectUrl: "https://www.your-service.com/cert",
+          ),
+          callback: (Map<String, String> result) {
+            print('인증 콜백 결과: $result');
+            Navigator.pop(context, result); // 인증 결과 돌려보냄
+          },
+        ),
+      ),
+    );
+
+    if (result != null && result['success'] == 'true') {
+      try {
+        final birthStr = result['response']?['birth']?.toString();
+        print("✅ birthStr: $birthStr");
+
+        if (birthStr == null) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('생년월일 정보 없음')));
+          return;
+        }
+
+        final birthInt = int.tryParse(birthStr);
+        if (birthInt == null) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('생년월일 파싱 실패')));
+          return;
+        }
+
+        final birthDate = DateTime.fromMillisecondsSinceEpoch(birthInt * 1000);
+        final formattedBirth =
+            "${birthDate.year.toString().padLeft(4, '0')}"
+            "${birthDate.month.toString().padLeft(2, '0')}"
+            "${birthDate.day.toString().padLeft(2, '0')}";
+        _birthController.text = formattedBirth;
+
+        setState(() => isCertified = true);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('본인인증 성공')));
+      } catch (e) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('인증 처리 중 오류: $e')));
+      }
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('본인인증 실패')));
     }
   }
 
@@ -153,7 +236,10 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
       return;
     }
 
-    final result = await _firestore.collection('users').where('email', isEqualTo: email).get();
+    final result = await _firestore
+        .collection('users')
+        .where('email', isEqualTo: email)
+        .get();
     setState(() {
       isEmailUnique = result.docs.isEmpty;
       emailChecked = true;
@@ -161,23 +247,32 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
   }
 
   bool get isLengthValid => _pwController.text.length >= 8;
+
   bool get hasSpecialChar =>
       RegExp(r'[!@#\$%^&*(),.?":{}|<>_\-\\\/]').hasMatch(_pwController.text);
+
   bool get isPasswordConfirmed =>
-      _pwController.text == _pwConfirmController.text && _pwConfirmController.text.isNotEmpty;
+      _pwController.text == _pwConfirmController.text &&
+      _pwConfirmController.text.isNotEmpty;
 
   Future<void> sendSmsCode() async {
     final phone = _phoneController.text.trim();
     if (phone.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('휴대폰 번호를 입력하세요')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('휴대폰 번호를 입력하세요')));
       return;
     }
     if (isPhoneVerified) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('이미 인증된 번호입니다')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('이미 인증된 번호입니다')));
       return;
     }
 
-    final formattedPhone = phone.startsWith('+') ? phone : '+82${phone.substring(1)}';
+    final formattedPhone = phone.startsWith('+')
+        ? phone
+        : '+82${phone.substring(1)}';
 
     if (formattedPhone == '+821012345678') {
       try {
@@ -187,10 +282,14 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
         );
         await _auth.signInWithCredential(testCredential);
         setState(() => isPhoneVerified = true);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('에뮬레이터 테스트 인증 완료')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('에뮬레이터 테스트 인증 완료')));
         return;
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('에뮬레이터 인증 실패: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('에뮬레이터 인증 실패: $e')));
         return;
       }
     }
@@ -201,14 +300,20 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
       verificationCompleted: (PhoneAuthCredential credential) async {
         await _auth.signInWithCredential(credential);
         setState(() => isPhoneVerified = true);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('자동 인증 완료')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('자동 인증 완료')));
       },
       verificationFailed: (FirebaseAuthException e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('인증 실패: ${e.message}')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('인증 실패: ${e.message}')));
       },
       codeSent: (String verificationId, int? resendToken) {
         _verificationId = verificationId;
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('인증번호가 발송되었습니다')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('인증번호가 발송되었습니다')));
         showSmsCodeDialog();
       },
       codeAutoRetrievalTimeout: (String verificationId) {
@@ -240,20 +345,22 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
               onPressed: () async {
                 final code = _codeController.text.trim();
                 if (code.length != 6) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('6자리 인증번호를 입력하세요')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('6자리 인증번호를 입력하세요')),
+                  );
                   return;
                 }
                 try {
-                  final credential = PhoneAuthProvider.credential(
-                    verificationId: _verificationId!,
-                    smsCode: code,
-                  );
-                  await _auth.signInWithCredential(credential);
+                  // 인증 성공 처리만 진행 (로그인하지 않음)
                   setState(() => isPhoneVerified = true);
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('휴대폰 인증 완료')));
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('휴대폰 인증 완료')));
                 } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('인증번호가 올바르지 않습니다')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('인증번호가 올바르지 않습니다')),
+                  );
                 }
               },
               child: const Text('확인'),
@@ -265,16 +372,17 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
   }
 
   Future<String> getNextUserId() async {
-    final usersRef = FirebaseFirestore.instance.collection('users');
-    final snapshot = await usersRef.orderBy(FieldPath.documentId, descending: true).limit(1).get();
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .orderBy('uid', descending: true)
+        .limit(1)
+        .get();
 
     if (snapshot.docs.isEmpty) return 'user1';
 
-    final lastId = snapshot.docs.first.id;
-    final lastNumber = int.tryParse(lastId.replaceAll('user', '')) ?? 0;
-    final nextNumber = lastNumber + 1;
-
-    return 'user$nextNumber';
+    final lastUid = snapshot.docs.first['uid']; // 예: user12
+    final lastNumber = int.tryParse(lastUid.replaceAll('user', '')) ?? 0;
+    return 'user${lastNumber + 1}';
   }
 
   void showTermDetailModal(int index) {
@@ -344,29 +452,39 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (checkedList.contains(false)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('모든 약관에 동의해주세요')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('모든 약관에 동의해주세요')));
       return;
     }
     if (!emailChecked || !isEmailUnique) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('이메일 중복 확인을 해주세요')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('이메일 중복 확인을 해주세요')));
       return;
     }
     if (!isLengthValid || !hasSpecialChar) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('비밀번호 조건을 만족하세요')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('비밀번호 조건을 만족하세요')));
       return;
     }
     if (!isPasswordConfirmed) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('비밀번호가 일치하지 않습니다')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('비밀번호가 일치하지 않습니다')));
       return;
     }
     if (!isAdultValid) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('만 19세 이상만 가입할 수 있습니다')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('만 19세 이상만 가입할 수 있습니다')));
       return;
     }
     if (!isPhoneVerified) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('휴대폰 인증을 완료해주세요')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('휴대폰 인증을 완료해주세요')));
       return;
     }
 
@@ -374,7 +492,6 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
     final password = _pwController.text.trim();
     final phone = _phoneController.text.trim();
     final birth = _birthController.text.trim();
-
 
     try {
       // ✅ Firebase Auth에 회원 계정 생성
@@ -392,20 +509,26 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
         'phone': phone,
         'birth': birth,
         'name': _nameController.text.trim(),
+        'address': _addressController.text.trim(),
+        'addressDetail': _addressDetailController.text.trim(),
         'createdAt': Timestamp.now(),
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('회원가입 성공!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('회원가입 성공!')));
 
       // ✅ 로그인 화면으로 이동
-      Future.delayed(const Duration(seconds: 1), () {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const LoginPage()),
-        );
-      });
+      if (mounted) {
+        Future.delayed(const Duration(seconds: 1), () {
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginPage()),
+            );
+          }
+        });
+      }
     } on FirebaseAuthException catch (e) {
       String msg = '회원가입 실패';
       if (e.code == 'email-already-in-use') {
@@ -417,26 +540,40 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
       }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('오류: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('오류: $e')));
     }
   }
 
   Widget _conditionRow(bool conditionMet, String text) {
     return Row(
       children: [
-        Icon(conditionMet ? Icons.check_circle : Icons.radio_button_unchecked,
-            color: conditionMet ? Colors.lightGreenAccent : Colors.grey, size: 16),
+        Icon(
+          conditionMet ? Icons.check_circle : Icons.radio_button_unchecked,
+          color: conditionMet ? Colors.lightGreenAccent : Colors.grey,
+          size: 16,
+        ),
         const SizedBox(width: 6),
         Text(
           text,
-          style: TextStyle(color: conditionMet ? Colors.lightGreenAccent : Colors.grey, fontSize: 12),
+          style: TextStyle(
+            color: conditionMet ? Colors.lightGreenAccent : Colors.grey,
+            fontSize: 12,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildTextField(String label, IconData icon, TextEditingController controller,
-      {bool isPassword = false, TextInputType inputType = TextInputType.text, void Function(String)? onChanged}) {
+  Widget _buildTextField(
+    String label,
+    IconData icon,
+    TextEditingController controller, {
+    bool isPassword = false,
+    TextInputType inputType = TextInputType.text,
+    void Function(String)? onChanged,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: TextFormField(
@@ -447,6 +584,8 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon, color: Colors.white),
+          filled: true, // ✅ 추가
+          border: OutlineInputBorder(),
         ),
         onChanged: onChanged,
         validator: (value) {
@@ -455,23 +594,29 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
             final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
             if (!emailRegex.hasMatch(value)) return '유효한 이메일 형식이 아닙니다';
           }
-          if (label == '비밀번호 확인' && value != _pwController.text) return '비밀번호가 일치하지 않습니다';
+          if (label == '비밀번호 확인' && value != _pwController.text)
+            return '비밀번호가 일치하지 않습니다';
           if (label == '비밀번호') {
             if (value.length < 8) return '최소 8자 이상 입력하세요';
             if (!RegExp(r'[!@#\$%^&*(),.?":{}|<>_\-\\\/]').hasMatch(value)) {
               return '특수문자 1개 이상 포함해야 합니다';
             }
           }
-          if (label == '휴대폰 번호' && value.length < 10) return '올바른 휴대폰 번호를 입력하세요';
+          if (label == '휴대폰 번호' && value.length < 10)
+            return '올바른 휴대폰 번호를 입력하세요';
           if (label.contains('생년월일')) {
             if (value.length != 8) return '생년월일은 8자리로 입력하세요 (YYYYMMDD)';
             final year = int.tryParse(value.substring(0, 4));
             final month = int.tryParse(value.substring(4, 6));
             final day = int.tryParse(value.substring(6, 8));
-            if (year == null || month == null || day == null) return '존재하지 않는 날짜입니다';
+            if (year == null || month == null || day == null)
+              return '존재하지 않는 날짜입니다';
             try {
               final birth = DateTime(year, month, day);
-              if (birth.year != year || birth.month != month || birth.day != day) return '존재하지 않는 날짜입니다';
+              if (birth.year != year ||
+                  birth.month != month ||
+                  birth.day != day)
+                return '존재하지 않는 날짜입니다';
               if (birth.isAfter(DateTime.now())) return '존재하지 않는 날짜입니다';
             } catch (_) {
               return '존재하지 않는 날짜입니다';
@@ -545,7 +690,6 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
                 ),
               ],
             );
-
           }),
         ],
       ),
@@ -560,7 +704,10 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
       appBar: AppBar(
         backgroundColor: const Color(0xFF1F1F1F),
         elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: const Text('회원가입'),
       ),
       body: SingleChildScrollView(
@@ -570,19 +717,26 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
           child: Column(
             children: [
               _buildTextField('이름', Icons.person, _nameController),
-              _buildTextField('이메일', Icons.email, _emailController,
-                  inputType: TextInputType.emailAddress,
-                  onChanged: (_) => checkEmailDuplicate()),
+              _buildTextField(
+                '이메일',
+                Icons.email,
+                _emailController,
+                inputType: TextInputType.emailAddress,
+                onChanged: (_) => checkEmailDuplicate(),
+              ),
               if (emailChecked)
                 if (emailChecked)
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      isEmailUnique && _emailController.text.trim().contains('@')
+                      isEmailUnique &&
+                              _emailController.text.trim().contains('@')
                           ? '사용할 수 있는 이메일입니다'
                           : '이메일 형식이 올바르지 않거나 이미 사용 중입니다',
                       style: TextStyle(
-                        color: isEmailUnique && _emailController.text.trim().contains('@')
+                        color:
+                            isEmailUnique &&
+                                _emailController.text.trim().contains('@')
                             ? Colors.lightGreenAccent
                             : Colors.redAccent,
                         fontSize: 13,
@@ -590,7 +744,13 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
                     ),
                   ),
               const SizedBox(height: 20),
-              _buildTextField('비밀번호', Icons.lock, _pwController, isPassword: true, onChanged: (_) => setState(() {})),
+              _buildTextField(
+                '비밀번호',
+                Icons.lock,
+                _pwController,
+                isPassword: true,
+                onChanged: (_) => setState(() {}),
+              ),
               Padding(
                 padding: const EdgeInsets.only(left: 12, top: 4, bottom: 8),
                 child: Column(
@@ -601,18 +761,64 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
                   ],
                 ),
               ),
-              _buildTextField('비밀번호 확인', Icons.lock_outline, _pwConfirmController,
-                  isPassword: true, onChanged: (_) => setState(() {})),
+              _buildTextField(
+                '비밀번호 확인',
+                Icons.lock_outline,
+                _pwConfirmController,
+                isPassword: true,
+                onChanged: (_) => setState(() {}),
+              ),
               if (_pwConfirmController.text.isNotEmpty)
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
                     isPasswordConfirmed ? '비밀번호가 일치합니다' : '비밀번호가 일치하지 않습니다',
-                    style: TextStyle(color: isPasswordConfirmed ? Colors.lightGreenAccent : Colors.redAccent, fontSize: 13),
+                    style: TextStyle(
+                      color: isPasswordConfirmed
+                          ? Colors.lightGreenAccent
+                          : Colors.redAccent,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
+              _buildTextField(
+                '휴대폰 번호',
+                Icons.phone_android,
+                _phoneController,
+                inputType: TextInputType.phone,
+              ),
+              ElevatedButton.icon(
+                onPressed: startCertification,
+                icon: const Icon(Icons.verified_user),
+                label: const Text('본인인증 하기'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+              ),
               const SizedBox(height: 24),
-              _buildTextField('생년월일 (YYYYMMDD)', Icons.calendar_today, _birthController, inputType: TextInputType.number),
+              ElevatedButton.icon(
+                onPressed: sendSmsCode,
+                icon: const Icon(Icons.sms),
+                label: Text(isPhoneVerified ? '인증 완료' : '인증번호 받기'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isPhoneVerified ? Colors.grey : orange,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildTextField(
+                '생년월일 (YYYYMMDD)',
+                Icons.calendar_today,
+                _birthController,
+                inputType: TextInputType.number,
+              ),
               if (_birthController.text.length == 8)
                 Align(
                   alignment: Alignment.centerLeft,
@@ -623,30 +829,51 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
                         ? '성인입니다'
                         : '만 19세 미만은 가입할 수 없습니다',
                     style: TextStyle(
-                      color: !isBirthValid ? Colors.redAccent : isAdultValid ? Colors.lightGreenAccent : Colors.redAccent,
+                      color: !isBirthValid
+                          ? Colors.redAccent
+                          : isAdultValid
+                          ? Colors.lightGreenAccent
+                          : Colors.redAccent,
                       fontSize: 13,
                     ),
                   ),
                 ),
-              _buildTextField('휴대폰 번호', Icons.phone_android, _phoneController, inputType: TextInputType.phone),
+              SizedBox(height: 24),
+              _buildTextField(
+                '주소',
+                Icons.home,
+                _addressController,
+                inputType: TextInputType.text,
+              ),
               ElevatedButton.icon(
-                onPressed: sendSmsCode,
-                icon: const Icon(Icons.sms),
-                label: Text(isPhoneVerified ? '인증 완료' : '인증번호 받기'),
+                onPressed: _searchAddress,
+                icon: const Icon(Icons.search),
+                label: const Text('주소 검색'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isPhoneVerified ? Colors.grey : orange,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  backgroundColor: Colors.teal,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   minimumSize: const Size(double.infinity, 48),
                 ),
               ),
-              SizedBox(height: 24),
+              const SizedBox(height: 12),
+              _buildTextField(
+                '상세주소 (동/호수 등)',
+                Icons.location_on,
+                _addressDetailController,
+                inputType: TextInputType.text,
+              ),
+              const SizedBox(height: 24),
               buildTermsSection(),
               SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _submit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: orange,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   minimumSize: const Size(double.infinity, 50),
                 ),
                 child: const Text('가입하기', style: TextStyle(fontSize: 16)),
