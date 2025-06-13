@@ -75,7 +75,7 @@ class MyApp extends StatelessWidget {
         '/ar': (context) => const ArPage(),
         '/wishList': (context) => const WishListPage(),
         '/product': (context) => const ProductPage(),
-        '/product/view': (context) => const ProductViewPage(),
+        '/product/view': (context) => const ProductViewPage(productId: '',),
         '/recipe': (context) => const RecipePage(),
         '/recipe/view': (context) => const RecipeViewPage(),
         '/mybar': (context) => const MyBarPage(),

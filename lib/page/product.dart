@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../common/appBar.dart';
 import '../common/bottomBar.dart';
+import '../page/productView.dart';
 
 class ProductPage extends StatefulWidget {
   const ProductPage({super.key});
@@ -81,6 +82,14 @@ class _ProductPageState extends State<ProductPage> {
       itemBuilder: (context, index) {
         final data = productList[index].data() as Map<String, dynamic>;
         return ListTile(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ProductViewPage(productId: data['productId']),
+              ),
+            );
+          },
           leading: Image.network(data['imgUrl'], width: 50, height: 50, fit: BoxFit.cover),
           title: Text(data['name'], style: const TextStyle(color: Colors.white)),
           subtitle: Text('${_formatPrice(data['price'])}원', style: const TextStyle(color: Color(0xFFE94E2B))),
@@ -100,35 +109,45 @@ class _ProductPageState extends State<ProductPage> {
       ),
       itemBuilder: (context, index) {
         final data = productList[index].data() as Map<String, dynamic>;
-        return Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: Colors.black45,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                child: Image.network(
-                  data['imgUrl'],
-                  height: 120,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ProductViewPage(productId: data['productId']),
               ),
-              Padding(
-                padding: const EdgeInsets.all(8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(data['name'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Text('${_formatPrice(data['price'])}원', style: const TextStyle(color: Color(0xFFE94E2B))),
-                  ],
+            );
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.black45,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  child: Image.network(
+                    data['imgUrl'],
+                    height: 120,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
                 ),
-              ),
-            ],
+                Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(data['name'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Text('${_formatPrice(data['price'])}원', style: const TextStyle(color: Color(0xFFE94E2B))),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
