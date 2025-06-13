@@ -100,7 +100,9 @@ class _MyPageState extends State<MyPage> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const RecipeViewPage()),
+                      MaterialPageRoute(
+                        builder: (_) => RecipeViewPage(recipeId: recipe['id']!), // 필요시 id 넘기기
+                      ),
                     );
                   },
                   child: Container(

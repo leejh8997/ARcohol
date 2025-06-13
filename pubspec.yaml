@@ -43,6 +43,7 @@ dependencies:
   image_picker:
   url_launcher:
   intl:
+  async:
   firebase_auth:
   flutter_inappwebview: ^6.0.0
   portone_flutter:

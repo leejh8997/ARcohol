@@ -17,7 +17,6 @@ import 'common/myRecipe.dart';
 import 'common/wishList.dart';
 import 'common/buyProduct.dart';
 import 'common/profileEdit.dart';
-
 import 'user/login.dart';
 import 'user/join.dart';
 
@@ -77,7 +76,10 @@ class MyApp extends StatelessWidget {
         '/product': (context) => const ProductPage(),
         '/product/view': (context) => const ProductViewPage(productId: '',),
         '/recipe': (context) => const RecipePage(),
-        '/recipe/view': (context) => const RecipeViewPage(),
+        '/recipe/view': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as String;
+          return RecipeViewPage(recipeId: args);
+        },
         '/mybar': (context) => const MyBarPage(),
         '/inventory': (context) => const InventoryPage(),
       },
