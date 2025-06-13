@@ -21,7 +21,7 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
 
   bool hasPurchased = false;
   bool hasWrittenReview = false;
-  String? myUid = FirebaseAuth.instance.currentUser?.uid;
+  String? myUid;
 
   final Color primaryColor = const Color(0xFFE94E2B);
   final Color darkBg = const Color(0xFF1F1F1F);
@@ -32,9 +32,20 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    fetchProduct();
-    fetchReviews();
-    checkPurchaseStatus();
+    initPage();
+  }
+
+  Future<void> initPage() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    setState(() {
+      myUid = user.uid;
+    });
+
+    await fetchProduct();
+    await fetchReviews();
+    await checkPurchaseStatus();
   }
 
   Future<void> fetchProduct() async {
@@ -49,15 +60,18 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
   Future<void> checkPurchaseStatus() async {
     if (myUid == null) return;
 
+    bool purchased = false;
+    bool wroteReview = false;
+
     final orders = await FirebaseFirestore.instance
         .collection('orders')
         .where('userId', isEqualTo: myUid)
         .get();
 
     for (final order in orders.docs) {
-      final items = List.from(order['items']);
-      if (items.any((e) => e['itemId'] == widget.productId)) {
-        hasPurchased = true;
+      final item = order['items'];
+      if (item is Map && item['itemId'] == widget.productId) {
+        purchased = true;
         break;
       }
     }
@@ -68,8 +82,13 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
         .where('writer', isEqualTo: myUid)
         .get();
 
+    wroteReview = existingReview.docs.isNotEmpty;
+
     setState(() {
-      hasWrittenReview = existingReview.docs.isNotEmpty;
+      print('✅ userId: $myUid');
+      print('✅ hasPurchased: $hasPurchased / hasWrittenReview: $hasWrittenReview');
+      hasPurchased = purchased;
+      hasWrittenReview = wroteReview;
     });
   }
 
@@ -426,8 +445,8 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
                                         TextButton(
                                           onPressed: () async {
                                             await FirebaseFirestore.instance.collection('review').doc(r['id']).delete();
-                                            fetchReviews();
-                                            checkPurchaseStatus();
+                                            await fetchReviews();
+                                            await checkPurchaseStatus();
                                           },
                                           child: const Text('삭제', style: TextStyle(color: Colors.redAccent)),
                                         )
