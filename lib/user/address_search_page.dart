@@ -9,7 +9,7 @@ class AddressSearchPage extends StatefulWidget {
 }
 
 class _AddressSearchPageState extends State<AddressSearchPage> {
-  late InAppWebViewController webViewController;
+  InAppWebViewController? webViewController;
 
   @override
   Widget build(BuildContext context) {
@@ -17,22 +17,20 @@ class _AddressSearchPageState extends State<AddressSearchPage> {
       appBar: AppBar(title: const Text('주소 검색')),
       body: InAppWebView(
         initialUrlRequest: URLRequest(
-          url: WebUri('https://postcode.map.daum.net'),
+          url: WebUri('https://arcohol-20250609.web.app/kakao_postcode.html'),
         ),
         initialOptions: InAppWebViewGroupOptions(
           crossPlatform: InAppWebViewOptions(
             javaScriptEnabled: true,
+            javaScriptCanOpenWindowsAutomatically: true,
+            useShouldOverrideUrlLoading: true,
           ),
           android: AndroidInAppWebViewOptions(
             useHybridComposition: true,
           ),
-          ios: IOSInAppWebViewOptions(
-            allowsInlineMediaPlayback: true,
-          ),
         ),
         onWebViewCreated: (controller) {
           webViewController = controller;
-
           controller.addJavaScriptHandler(
             handlerName: 'onAddressSelected',
             callback: (args) {
@@ -40,14 +38,27 @@ class _AddressSearchPageState extends State<AddressSearchPage> {
             },
           );
         },
-        onLoadStop: (controller, url) async {
-          await controller.evaluateJavascript(source: """
-            new daum.Postcode({
-              oncomplete: function(data) {
-                window.flutter_inappwebview.callHandler('onAddressSelected', [data.address]);
-              }
-            }).open();
-          """);
+
+        /// ✅ 팝업 창을 수동으로 열어주는 처리 (중요!)
+        onCreateWindow: (controller, createWindowRequest) async {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              content: SizedBox(
+                width: double.infinity,
+                height: 500,
+                child: InAppWebView(
+                  windowId: createWindowRequest.windowId,
+                  initialOptions: InAppWebViewGroupOptions(
+                    crossPlatform: InAppWebViewOptions(
+                      javaScriptEnabled: true,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+          return true;
         },
       ),
     );
