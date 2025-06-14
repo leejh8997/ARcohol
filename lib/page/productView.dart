@@ -1,5 +1,6 @@
 // 🔁 문의 -> 리뷰 기능으로 변경한 ProductViewPage + 컬러 스킴 적용
 
+import 'package:arcohol/page/productOrder.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -21,6 +22,7 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
 
   bool hasPurchased = false;
   bool hasWrittenReview = false;
+  bool isAlreadyInCart = false;
   String? myUid;
 
   final Color primaryColor = const Color(0xFFE94E2B);
@@ -46,6 +48,7 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
     await fetchProduct();
     await fetchReviews();
     await checkPurchaseStatus();
+    await checkCartStatus();
   }
 
   Future<void> fetchProduct() async {
@@ -54,6 +57,24 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
       setState(() {
         productData = doc.data()!;
       });
+    }
+  }
+
+  Future<void> checkCartStatus() async {
+    if (myUid == null) return;
+
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(myUid).get();
+    if (!userDoc.exists) return;
+
+    final cartItems = userDoc.data()?['cartitem'] as List<dynamic>? ?? [];
+
+    for (final item in cartItems) {
+      if (item is Map && item['productId'] == widget.productId) {
+        setState(() {
+          isAlreadyInCart = true;
+        });
+        break;
+      }
     }
   }
 
@@ -206,9 +227,11 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
     );
   }
 
-  void _showPurchaseSheet() {
+  void _showPurchaseSheet(String actionType) {
     if (productData == null) return;
     final price = productData!['price'] ?? 0;
+
+
     showModalBottomSheet(
       context: context,
       backgroundColor: midBg,
@@ -248,8 +271,6 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
                         onPressed: () => setSheetState(() => quantity++),
                       ),
                       const Spacer(),
-                      // Text('10%', style: TextStyle(color: primaryColor)),
-                      // const SizedBox(width: 6),
                       Text('${_formatPrice(price)}원', style: const TextStyle(color: Colors.white)),
                     ],
                   ),
@@ -258,31 +279,111 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('총 $quantity개 상품', style: const TextStyle(color: Colors.white)),
-                      Text('${_formatPrice(quantity * price )}원', style: TextStyle(color: primaryColor)),
+                      Text('${_formatPrice(quantity * price)}원', style: TextStyle(color: primaryColor)),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {},
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,           // 텍스트 색상
-                            side: BorderSide(color: primaryColor),   // 테두리 색상
+                  Center(
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: actionType == 'cart'
+                          ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (isAlreadyInCart)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Text(
+                                '이미 장바구니에 담긴 상품입니다.',
+                                style: TextStyle(color: Colors.grey[400]),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isAlreadyInCart ? Colors.grey : primaryColor,
+                            ),
+                            onPressed: isAlreadyInCart ? null : () async {
+                              if (myUid == null || productData == null) return;
+
+                              final cartItem = {
+                                'productId': widget.productId,
+                                'quantity': quantity,
+                                'price': productData!['price']
+                              };
+
+                              try {
+                                await FirebaseFirestore.instance.collection('users').doc(myUid).update({
+                                  'cartitem': FieldValue.arrayUnion([cartItem])
+                                });
+
+                                if (mounted) {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('상품이 장바구니에 담겼습니다.')),
+                                  );
+                                  setState(() {
+                                    isAlreadyInCart = true;
+                                  });
+                                }
+                              } catch (e) {
+                                print('❌ 장바구니 추가 실패: $e');
+                              }
+                            },
+                            child: Text(isAlreadyInCart ? '이미 담김' : '장바구니 담기'),
                           ),
-                          child: const Text('장바구니'),
-                        ),
+                          if (isAlreadyInCart)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: Colors.redAccent),
+                                  foregroundColor: Colors.redAccent,
+                                ),
+                                onPressed: () async {
+                                  try {
+                                    final userRef = FirebaseFirestore.instance.collection('users').doc(myUid);
+                                    final userDoc = await userRef.get();
+                                    final cart = userDoc.data()?['cartitem'] as List<dynamic>? ?? [];
+
+                                    final updatedCart = cart.where((item) =>
+                                    !(item is Map && item['productId'] == widget.productId)
+                                    ).toList();
+
+                                    await userRef.update({'cartitem': updatedCart});
+
+                                    if (mounted) {
+                                      Navigator.pop(context);
+                                      setState(() {
+                                        isAlreadyInCart = false;
+                                      });
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('장바구니에서 제거되었습니다.')),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    print('❌ 장바구니 제거 실패: $e');
+                                  }
+                                },
+                                child: const Text('장바구니에서 제거'),
+                              ),
+                            ),
+                        ],
+                      )
+                          : ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
+                        onPressed: () {
+                          // 구매하기 로직
+                          // Navigator.push(
+                          //   context,
+                          //   MaterialPageRoute(
+                          //     // builder: (_) => ProductOrderPage(product: productData),
+                          //   ),
+                          // );
+                        },
+                        child: const Text('구매하기'),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {},
-                          style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
-                          child: const Text('바로 구매'),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ],
               ),
@@ -472,18 +573,18 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
           children: [
             Expanded(
               child: OutlinedButton(
-                onPressed: () => _showPurchaseSheet(),
+                onPressed: () => _showPurchaseSheet('cart'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,           // 텍스트 색상
-                  side: BorderSide(color: primaryColor),   // 테두리 색상
+                  foregroundColor: isAlreadyInCart ? Colors.grey : Colors.white,
+                  side: BorderSide(color: isAlreadyInCart ? Colors.grey : primaryColor),
                 ),
-                child: const Text('장바구니'),
+                child: Text(isAlreadyInCart ? '이미 담김' : '장바구니'),
               ),
             ),
-            SizedBox(width: 16,),
+            const SizedBox(width: 16),
             Expanded(
               child: ElevatedButton(
-                onPressed: () => _showPurchaseSheet(),
+                onPressed: () => _showPurchaseSheet('buy'), // buy 시트만 보이게
                 style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
                 child: const Text('바로 구매'),
               ),
