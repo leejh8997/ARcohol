@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'buyProductView.dart';
+// 동일 import 유지
 
 class BuyProductPage extends StatefulWidget {
   const BuyProductPage({Key? key}) : super(key: key);
@@ -10,10 +12,10 @@ class BuyProductPage extends StatefulWidget {
 }
 
 class _BuyProductPageState extends State<BuyProductPage> {
-  final Color primaryColor = const Color(0xFFE94E2B);
-  final Color darkBg = const Color(0xFF1F1F1F);
-  final Color midBg = const Color(0xFF333333);
-  final Color accent = const Color(0xFFBEB08B);
+  final Color primaryColor = const Color(0xFFE94E2B); // 주황
+  final Color darkBg = const Color(0xFF1F1F1F); // 전체 배경
+  final Color midBg = const Color(0xFF333333); // 카드 배경
+  final Color accent = const Color(0xFFBEB08B); // 강조 텍스트
 
   final user = FirebaseAuth.instance.currentUser;
 
@@ -39,9 +41,10 @@ class _BuyProductPageState extends State<BuyProductPage> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Text('주문상품', style: TextStyle(color: Colors.white, fontSize: 18)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Text('주문상품',
+                style: TextStyle(color: primaryColor, fontSize: 18, fontWeight: FontWeight.bold)),
           ),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
@@ -62,16 +65,16 @@ class _BuyProductPageState extends State<BuyProductPage> {
                   itemCount: docs.length,
                   itemBuilder: (context, i) {
                     final data = docs[i].data() as Map<String, dynamic>;
-                    final items = List.from(data['items'] as List);
-                    final item = items.first as Map<String, dynamic>;
-                    final payment = Map.from(data['payment'] as Map);
-                    final delivery = Map.from(data['delivery'] as Map);
+                    final List<dynamic> items = data['items'];
+                    final Map<String, dynamic> item = items.first as Map<String, dynamic>;
+                    final payment = Map<String, dynamic>.from(data['payment']);
+                    final delivery = Map<String, dynamic>.from(data['delivery']);
                     final date = (data['o_createdAt'] as Timestamp).toDate();
-                    final dateStr = '${date.year}.${date.month.toString().padLeft(2,'0')}.${date.day.toString().padLeft(2,'0')}';
+                    final dateStr = '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 16),
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(16), // ✅ 더 넓은 padding
                       decoration: BoxDecoration(
                         color: midBg,
                         borderRadius: BorderRadius.circular(12),
@@ -82,24 +85,31 @@ class _BuyProductPageState extends State<BuyProductPage> {
                           // 날짜 · 배송 상태 · 상세 버튼
                           Row(
                             children: [
-                              Text(dateStr, style: const TextStyle(color: Colors.white)),
+                              Text(
+                                dateStr,
+                                style: TextStyle(color: accent, fontWeight: FontWeight.bold),
+                              ),
                               const SizedBox(width: 8),
                               Text(
                                 mapStatus(delivery['status']),
-                                style: TextStyle(color: accent, fontSize: 12),
+                                style: TextStyle(color: primaryColor, fontSize: 12, fontWeight: FontWeight.bold),
                               ),
                               const Spacer(),
                               IconButton(
                                 icon: const Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 16),
                                 onPressed: () {
-                                  // 상세페이지로 네비게이션
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => BuyProductViewPage(orderData: data), // ← 전달할 주문 데이터
+                                    ),
+                                  );
                                 },
                               ),
                             ],
                           ),
                           const Divider(color: Colors.white30),
-                          const SizedBox(height: 8),
-                          // 주소
+
                           Text(
                             '${data['address']}, ${data['addressDetail']}',
                             style: const TextStyle(color: Colors.white70),
@@ -109,60 +119,83 @@ class _BuyProductPageState extends State<BuyProductPage> {
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Image.network(
-                                item['imgUrl'],
-                                width: 80,
-                                height: 80,
-                                fit: BoxFit.cover,
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  item['imgUrl'],
+                                  width: 120,
+                                  height: 130,
+                                  fit: BoxFit.cover,
+                                ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // 결제수단
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: darkBg,
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        payment['method'] == 'card' ? '카드결제' : payment['method'],
-                                        style: TextStyle(color: primaryColor, fontSize: 12),
-                                      ),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            border: Border.all(color: primaryColor),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            payment['method'] == 'card' ? '카드결제' : payment['method'],
+                                            style: TextStyle(
+                                              color: primaryColor,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                        Text('${item['quantity']}개',
+                                            style: const TextStyle(color: Colors.white, fontSize: 14)),
+                                      ],
                                     ),
-                                    const SizedBox(height: 6),
+                                    const SizedBox(height: 8),
                                     Text(
                                       item['pName'],
-                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                     const SizedBox(height: 4),
                                     if (data['memo'] != null)
-                                      Text(
-                                        data['memo'],
-                                        style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                      Padding(
+                                        padding: const EdgeInsets.only(bottom: 8),
+                                        child: Text(
+                                          data['memo'],
+                                          style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 14,
+                                          ),
+                                        ),
                                       ),
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          border: Border.all(color: primaryColor),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          '총 주문금액: ${data['totalPrice']}원',
+                                          style: TextStyle(
+                                            color: primaryColor,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   ],
                                 ),
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text('${item['quantity']}개', style: const TextStyle(color: Colors.white)),
-                                  const SizedBox(height: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      border: Border.all(color: primaryColor),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      '총 주문금액: ${data['totalPrice']}원',
-                                      style: TextStyle(color: primaryColor, fontSize: 12),
-                                    ),
-                                  ),
-                                ],
                               ),
                             ],
                           ),
