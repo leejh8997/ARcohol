@@ -127,8 +127,9 @@ class _HomePageState extends State<HomePage> {
 
   Widget buildCard(DocumentSnapshot doc) {
     final name = doc.data().toString().contains('cockName') ? doc['cockName'] : doc['name'];
-    final image = doc.data().toString().contains('c_imgUrl') ? doc['c_imgUrl'] : doc['imgUrl'];
+    // final image = doc.data().toString().contains('c_imgUrl') ? doc['c_imgUrl'] : doc['imgUrl'];
 
+    final image = doc['imgUrl'];
     return GestureDetector(
       onTap: () {
         // 판매 상품인 경우만 이동 (product 컬렉션의 문서)
@@ -207,34 +208,34 @@ class _HomePageState extends State<HomePage> {
         },
       ),
       backgroundColor: const Color(0xFF1F1F1F),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (bannerList.isNotEmpty)
-              CarouselSlider(
-                options: CarouselOptions(height: 200.0, autoPlay: true),
-                items: bannerList.map((doc) {
-                  return Builder(
-                    builder: (BuildContext context) {
-                      return ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(doc['c_imgUrl'], fit: BoxFit.cover, width: double.infinity),
-                      );
-                    },
-                  );
-                }).toList(),
-              ),
-            const SizedBox(height: 20),
-            buildSection('추천 상품', Icons.recommend, recommendedList, () => fetchRecommended(), hasMoreRecommended,),
-            const SizedBox(height: 20),
-            buildSection(' 인기 상품', Icons.local_fire_department, popularList, fetchPopular, hasMorePopular,),
-            const SizedBox(height: 20),
-            buildSection(' 판매 상품', Icons.shopping_bag, productList, fetchProducts, hasMoreProduct,),
-          ],
-        ),
-      ),
+      // body: SingleChildScrollView(
+      //   padding: const EdgeInsets.all(16),
+      //   child: Column(
+      //     crossAxisAlignment: CrossAxisAlignment.start,
+      //     children: [
+      //       if (bannerList.isNotEmpty)
+      //         CarouselSlider(
+      //           options: CarouselOptions(height: 200.0, autoPlay: true),
+      //           items: bannerList.map((doc) {
+      //             return Builder(
+      //               builder: (BuildContext context) {
+      //                 return ClipRRect(
+      //                   borderRadius: BorderRadius.circular(8),
+      //                   child: Image.network(doc['c_imgUrl'], fit: BoxFit.cover, width: double.infinity),
+      //                 );
+      //               },
+      //             );
+      //           }).toList(),
+      //         ),
+      //       const SizedBox(height: 20),
+      //       buildSection('추천 상품', Icons.recommend, recommendedList, () => fetchRecommended(), hasMoreRecommended,),
+      //       const SizedBox(height: 20),
+      //       buildSection(' 인기 상품', Icons.local_fire_department, popularList, fetchPopular, hasMorePopular,),
+      //       const SizedBox(height: 20),
+      //       buildSection(' 판매 상품', Icons.shopping_bag, productList, fetchProducts, hasMoreProduct,),
+      //     ],
+      //   ),
+      // ),
     );
   }
 }
