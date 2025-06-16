@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+
 class ProductViewPage extends StatefulWidget {
   final String productId;
   const ProductViewPage({super.key, required this.productId});
@@ -374,12 +375,12 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
                         style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
                         onPressed: () {
                           // 구매하기 로직
-                          // Navigator.push(
-                          //   context,
-                          //   MaterialPageRoute(
-                          //     // builder: (_) => ProductOrderPage(product: productData),
-                          //   ),
-                          // );
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ProductOrderPage(product: productData!),
+                            ),
+                          );
                         },
                         child: const Text('구매하기'),
                       ),
