@@ -23,12 +23,12 @@ class _RecipeViewPageState extends State<RecipeViewPage> {
   }
 
   Future<void> _fetchRecipe() async {
-    final doc = await FirebaseFirestore.instance.collection("recipes").doc(widget.recipeId).get();
+    final doc = await FirebaseFirestore.instance.collection("recipe").doc(widget.recipeId).get();
 
     if (doc.exists) {
       final data = doc.data()!;
       final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-      final likedList = List<String>.from(data['liked'] ?? []);
+      final likedList = List<String>.from(data['likes'] ?? []);
       setState(() {
         recipe = data;
         isLiked = likedList.contains(uid);
@@ -41,10 +41,10 @@ class _RecipeViewPageState extends State<RecipeViewPage> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null || recipe == null) return;
 
-    final recipeRef = FirebaseFirestore.instance.collection("recipes").doc(widget.recipeId);
+    final recipeRef = FirebaseFirestore.instance.collection("recipe").doc(widget.recipeId);
     final userRef = FirebaseFirestore.instance.collection("users").doc(uid);
 
-    List<String> likedList = List<String>.from(recipe!['liked'] ?? []);
+    List<String> likedList = List<String>.from(recipe!['likes'] ?? []);
     List<String> userLikes = [];
 
     final userDoc = await userRef.get();
@@ -61,7 +61,7 @@ class _RecipeViewPageState extends State<RecipeViewPage> {
     }
 
     await Future.wait([
-      recipeRef.update({'liked': likedList}),
+      recipeRef.update({'likes': likedList}),
       userRef.update({'likes': userLikes}),
     ]);
 
@@ -95,7 +95,7 @@ class _RecipeViewPageState extends State<RecipeViewPage> {
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: Image.network(
-                recipe!['imgUrl'] ?? '',
+                recipe!['c_imgUrl'] ?? '',
                 width: double.infinity,
                 height: 220,
                 fit: BoxFit.cover,
@@ -109,7 +109,7 @@ class _RecipeViewPageState extends State<RecipeViewPage> {
               children: [
                 Expanded(
                   child: Text(
-                    "${recipe!['cocktailName_ko'] ?? ''} (${recipe!['cocktailName'] ?? ''})",
+                    "${recipe!['cockName_ko'] ?? ''} (${recipe!['cockName'] ?? ''})",
                     style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                 ),

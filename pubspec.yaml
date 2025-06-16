@@ -39,6 +39,7 @@ dependencies:
   flutter_slidable:
   animations:
   firebase_core:
+  firebase_storage:
   cloud_firestore:
   image_picker:
   url_launcher:
