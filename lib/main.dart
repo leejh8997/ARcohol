@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'page/home.dart';
 import 'page/myBar.dart';
@@ -17,7 +18,6 @@ import 'common/myRecipe.dart';
 import 'common/wishList.dart';
 import 'common/buyProduct.dart';
 import 'common/profileEdit.dart';
-
 import 'user/login.dart';
 import 'user/join.dart';
 
@@ -26,7 +26,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
+  await initializeDateFormatting('ko_KR', null);
   runApp(const MyApp());
 }
 
@@ -78,7 +78,10 @@ class MyApp extends StatelessWidget {
         '/product': (context) => const ProductPage(),
         '/product/view': (context) => const ProductViewPage(productId: '',),
         '/recipe': (context) => const RecipePage(),
-        '/recipe/view': (context) => const RecipeViewPage(),
+        '/recipe/view': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as String;
+          return RecipeViewPage(recipeId: args);
+        },
         '/mybar': (context) => const MyBarPage(),
         '/inventory': (context) => const InventoryPage(),
       },

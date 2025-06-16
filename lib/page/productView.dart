@@ -1,8 +1,11 @@
-// 🔁 문의 -> 리뷰 기능으로 변경한 ProductViewPage + 컬러 스킴 적용 (#BEB08B, #333333, #1F1F1F, #E94E2B)
+// 🔁 문의 -> 리뷰 기능으로 변경한 ProductViewPage + 컬러 스킴 적용
 
+import 'package:arcohol/page/productOrder.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 
 class ProductViewPage extends StatefulWidget {
   final String productId;
@@ -15,8 +18,13 @@ class ProductViewPage extends StatefulWidget {
 class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   Map<String, dynamic>? productData;
-  List<DocumentSnapshot> reviewList = [];
+  List<Map<String, dynamic>> reviewList = [];
   int quantity = 1;
+
+  bool hasPurchased = false;
+  bool hasWrittenReview = false;
+  bool isAlreadyInCart = false;
+  String? myUid;
 
   final Color primaryColor = const Color(0xFFE94E2B);
   final Color darkBg = const Color(0xFF1F1F1F);
@@ -27,8 +35,21 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    fetchProduct();
-    fetchReviews();
+    initPage();
+  }
+
+  Future<void> initPage() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    setState(() {
+      myUid = user.uid;
+    });
+
+    await fetchProduct();
+    await fetchReviews();
+    await checkPurchaseStatus();
+    await checkCartStatus();
   }
 
   Future<void> fetchProduct() async {
@@ -40,61 +61,165 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
     }
   }
 
-  Future<void> fetchReviews() async {
-    final snap = await FirebaseFirestore.instance
+  Future<void> checkCartStatus() async {
+    if (myUid == null) return;
+
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(myUid).get();
+    if (!userDoc.exists) return;
+
+    final cartItems = userDoc.data()?['cartitem'] as List<dynamic>? ?? [];
+
+    for (final item in cartItems) {
+      if (item is Map && item['productId'] == widget.productId) {
+        setState(() {
+          isAlreadyInCart = true;
+        });
+        break;
+      }
+    }
+  }
+
+  Future<void> checkPurchaseStatus() async {
+    if (myUid == null) return;
+
+    bool purchased = false;
+    bool wroteReview = false;
+
+    final orders = await FirebaseFirestore.instance
+        .collection('orders')
+        .where('userId', isEqualTo: myUid)
+        .get();
+
+    for (final order in orders.docs) {
+      final item = order['items'];
+      if (item is Map && item['itemId'] == widget.productId) {
+        purchased = true;
+        break;
+      }
+    }
+
+    final existingReview = await FirebaseFirestore.instance
         .collection('review')
         .where('productId', isEqualTo: widget.productId)
-        .orderBy('createdAt', descending: true)
+        .where('writer', isEqualTo: myUid)
         .get();
+
+    wroteReview = existingReview.docs.isNotEmpty;
+
     setState(() {
-      reviewList = snap.docs;
+      print('✅ userId: $myUid');
+      print('✅ hasPurchased: $hasPurchased / hasWrittenReview: $hasWrittenReview');
+      hasPurchased = purchased;
+      hasWrittenReview = wroteReview;
     });
   }
 
-  void _showReviewDialog() {
-    final controller = TextEditingController();
+  Future<void> fetchReviews() async {
+
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('review')
+          .where('productId', isEqualTo: widget.productId)
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      final List<Map<String, dynamic>> loadedReviews = [];
+
+      for (final doc in snap.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
+        final writerId = data['writer'];
+        final userSnap = await FirebaseFirestore.instance.collection('users').doc(writerId).get();
+        data['writerName'] = userSnap.exists ? userSnap['name'] : '알 수 없음';
+        loadedReviews.add(data);
+      }
+
+      setState(() {
+        reviewList = loadedReviews;
+      });
+    } catch (e) {
+      print('❌ 리뷰 불러오기 실패: $e');
+    }
+  }
+
+  void _showReviewDialog({Map<String, dynamic>? review}) {
+    final titleCtrl = TextEditingController(text: review?['title'] ?? '');
+    final contentCtrl = TextEditingController(text: review?['content'] ?? '');
+    int selectedRating = review?['rating'] ?? 0;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (_) => AlertDialog(
         backgroundColor: midBg,
         title: const Text('리뷰 작성', style: TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: controller,
-              maxLines: 5,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: '리뷰를 입력해주세요',
-                hintStyle: const TextStyle(color: Colors.grey),
-                enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: primaryColor)),
-                focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: primaryColor)),
+        content: StatefulBuilder(
+          builder: (_, setState) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleCtrl,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: '제목',
+                  labelStyle: const TextStyle(color: Colors.grey),
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: primaryColor)),
+                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: primaryColor)),
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              '상품 리뷰 작성 시 유의사항\n\n리뷰는 구매자에 한해 작성 가능하며 비방/욕설/개인정보 포함 시 삭제될 수 있습니다.',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-          ],
+              const SizedBox(height: 12),
+              TextField(
+                controller: contentCtrl,
+                maxLines: 4,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: '내용',
+                  labelStyle: const TextStyle(color: Colors.grey),
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: primaryColor)),
+                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: primaryColor)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: List.generate(5, (i) => IconButton(
+                  onPressed: () => setState(() => selectedRating = i + 1),
+                  icon: Icon(i < selectedRating ? Icons.star : Icons.star_border, color: primaryColor),
+                )),
+              )
+            ],
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
             onPressed: () async {
-              final content = controller.text.trim();
-              if (content.isEmpty) return;
-              await FirebaseFirestore.instance.collection('review').add({
-                'productId': widget.productId,
-                'title': content,
-                'writer': 'user21***',
-                'createdAt': Timestamp.now(),
-              });
-              fetchReviews();
+              print("리뷰 ID: ${review?['id']}");
+              final title = titleCtrl.text.trim();
+              final content = contentCtrl.text.trim();
+              final writer = myUid;
+              if (title.isEmpty || content.isEmpty || selectedRating == 0 || writer == null) return;
+
+              if (review == null) {
+                await FirebaseFirestore.instance.collection('review').add({
+                  'productId': widget.productId,
+                  'title': title,
+                  'content': content,
+                  'rating': selectedRating,
+                  'writer': writer,
+                  'createdAt': Timestamp.now(),
+                });
+              } else {
+                print("🔍 ------------------------리뷰 수정 ID: ${review?['id']}");
+                await FirebaseFirestore.instance.collection('review').doc(review['id']).update({
+                  'title': title,
+                  'content': content,
+                  'rating': selectedRating,
+                });
+              }
+
               Navigator.pop(context);
+              fetchReviews();
+              checkPurchaseStatus();
             },
             child: const Text('등록'),
           ),
@@ -103,9 +228,11 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
     );
   }
 
-  void _showPurchaseSheet() {
+  void _showPurchaseSheet(String actionType) {
     if (productData == null) return;
     final price = productData!['price'] ?? 0;
+
+
     showModalBottomSheet(
       context: context,
       backgroundColor: midBg,
@@ -121,17 +248,6 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Center(
-                    child: OutlinedButton(
-                      onPressed: () {},
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,           // 텍스트 색상
-                        side: BorderSide(color: primaryColor),   // 테두리 색상
-                      ),
-                      child: const Text('옵션 선택하기'),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -156,8 +272,6 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
                         onPressed: () => setSheetState(() => quantity++),
                       ),
                       const Spacer(),
-                      // Text('10%', style: TextStyle(color: primaryColor)),
-                      // const SizedBox(width: 6),
                       Text('${_formatPrice(price)}원', style: const TextStyle(color: Colors.white)),
                     ],
                   ),
@@ -166,31 +280,111 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('총 $quantity개 상품', style: const TextStyle(color: Colors.white)),
-                      Text('${_formatPrice(quantity * price )}원', style: TextStyle(color: primaryColor)),
+                      Text('${_formatPrice(quantity * price)}원', style: TextStyle(color: primaryColor)),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {},
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,           // 텍스트 색상
-                            side: BorderSide(color: primaryColor),   // 테두리 색상
+                  Center(
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: actionType == 'cart'
+                          ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (isAlreadyInCart)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Text(
+                                '이미 장바구니에 담긴 상품입니다.',
+                                style: TextStyle(color: Colors.grey[400]),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isAlreadyInCart ? Colors.grey : primaryColor,
+                            ),
+                            onPressed: isAlreadyInCart ? null : () async {
+                              if (myUid == null || productData == null) return;
+
+                              final cartItem = {
+                                'productId': widget.productId,
+                                'quantity': quantity,
+                                'price': productData!['price']
+                              };
+
+                              try {
+                                await FirebaseFirestore.instance.collection('users').doc(myUid).update({
+                                  'cartitem': FieldValue.arrayUnion([cartItem])
+                                });
+
+                                if (mounted) {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('상품이 장바구니에 담겼습니다.')),
+                                  );
+                                  setState(() {
+                                    isAlreadyInCart = true;
+                                  });
+                                }
+                              } catch (e) {
+                                print('❌ 장바구니 추가 실패: $e');
+                              }
+                            },
+                            child: Text(isAlreadyInCart ? '이미 담김' : '장바구니 담기'),
                           ),
-                          child: const Text('장바구니'),
-                        ),
+                          if (isAlreadyInCart)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: Colors.redAccent),
+                                  foregroundColor: Colors.redAccent,
+                                ),
+                                onPressed: () async {
+                                  try {
+                                    final userRef = FirebaseFirestore.instance.collection('users').doc(myUid);
+                                    final userDoc = await userRef.get();
+                                    final cart = userDoc.data()?['cartitem'] as List<dynamic>? ?? [];
+
+                                    final updatedCart = cart.where((item) =>
+                                    !(item is Map && item['productId'] == widget.productId)
+                                    ).toList();
+
+                                    await userRef.update({'cartitem': updatedCart});
+
+                                    if (mounted) {
+                                      Navigator.pop(context);
+                                      setState(() {
+                                        isAlreadyInCart = false;
+                                      });
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('장바구니에서 제거되었습니다.')),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    print('❌ 장바구니 제거 실패: $e');
+                                  }
+                                },
+                                child: const Text('장바구니에서 제거'),
+                              ),
+                            ),
+                        ],
+                      )
+                          : ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
+                        onPressed: () {
+                          // 구매하기 로직
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ProductOrderPage(product: productData!),
+                            ),
+                          );
+                        },
+                        child: const Text('구매하기'),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {},
-                          style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
-                          child: const Text('바로 구매'),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ],
               ),
@@ -229,30 +423,6 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
         elevation: 0,
         automaticallyImplyLeading: true,
         iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      bottomNavigationBar: BottomAppBar(
-        color: midBg,
-        child: Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => _showPurchaseSheet(),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,           // 텍스트 색상
-                  side: BorderSide(color: primaryColor),   // 테두리 색상
-                ),
-                child: const Text('장바구니'),
-              ),
-            ),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () => _showPurchaseSheet(),
-                style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
-                child: const Text('바로 구매'),
-              ),
-            ),
-          ],
-        ),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,33 +496,67 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
                 ),
                 Column(
                   children: [
-                    const SizedBox(height: 10),
-                    OutlinedButton(
-                      onPressed: _showReviewDialog,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,           // 텍스트 색상
-                        side: BorderSide(color: primaryColor),   // 테두리 색상
+                    if (hasPurchased && !hasWrittenReview)
+                      OutlinedButton(
+                        onPressed: () => _showReviewDialog(),
+                        style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: BorderSide(color: primaryColor)),
+                        child: const Text('리뷰 쓰기'),
                       ),
-                      child: const Text('리뷰 쓰기'),
-                    ),
                     Expanded(
                       child: ListView.builder(
                         itemCount: reviewList.length,
-                        itemBuilder: (context, index) {
-                          final review = reviewList[index].data() as Map<String, dynamic>;
-                          final maskedWriter = maskName(review['writer']);
-                          final date = DateFormat('yyyy.MM.dd').format(review['createdAt'].toDate());
-                          return ExpansionTile(
-                            collapsedBackgroundColor: midBg,
-                            backgroundColor: midBg,
-                            title: Text(review['title'], style: const TextStyle(color: Colors.white)),
-                            subtitle: Text('$maskedWriter  $date', style: const TextStyle(color: Colors.grey)),
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Text(review['title'], style: const TextStyle(color: Colors.white)),
-                              )
-                            ],
+                        itemBuilder: (_, i) {
+                          final r = reviewList[i];
+                          final isMine = r['writer'] == myUid;
+                          return Container(
+                            margin: const EdgeInsets.all(10),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: midBg,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(r['title'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                    Text(DateFormat('yyyy.MM.dd').format(r['createdAt'].toDate()), style: const TextStyle(color: Colors.grey))
+                                  ],
+                                ),
+                                Text(r['writerName'], style: const TextStyle(color: Colors.grey)),
+                                Row(
+                                  children: List.generate(5, (i) => Icon(
+                                    i < (r['rating'] ?? 0) ? Icons.star : Icons.star_border,
+                                    color: primaryColor, size: 18,
+                                  )),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(r['content'], style: const TextStyle(color: Colors.white)),
+                                if (isMine)
+                                  Align(
+                                    alignment: Alignment.bottomRight,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        TextButton(
+                                          onPressed: () => _showReviewDialog(review: r),
+                                          child: const Text('수정', style: TextStyle(color: Colors.orange)),
+                                        ),
+                                        TextButton(
+                                          onPressed: () async {
+                                            await FirebaseFirestore.instance.collection('review').doc(r['id']).delete();
+                                            await fetchReviews();
+                                            await checkPurchaseStatus();
+                                          },
+                                          child: const Text('삭제', style: TextStyle(color: Colors.redAccent)),
+                                        )
+                                      ],
+                                    ),
+                                  )
+                              ],
+                            ),
                           );
                         },
                       ),
@@ -363,6 +567,31 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
             ),
           ),
         ],
+      ),
+      bottomNavigationBar: BottomAppBar(
+        color: midBg,
+        child: Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => _showPurchaseSheet('cart'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: isAlreadyInCart ? Colors.grey : Colors.white,
+                  side: BorderSide(color: isAlreadyInCart ? Colors.grey : primaryColor),
+                ),
+                child: Text(isAlreadyInCart ? '이미 담김' : '장바구니'),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () => _showPurchaseSheet('buy'), // buy 시트만 보이게
+                style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
+                child: const Text('바로 구매'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

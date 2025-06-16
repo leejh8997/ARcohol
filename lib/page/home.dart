@@ -1,3 +1,4 @@
+import 'package:arcohol/page/productView.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -127,19 +128,32 @@ class _HomePageState extends State<HomePage> {
   Widget buildCard(DocumentSnapshot doc) {
     final name = doc.data().toString().contains('cockName') ? doc['cockName'] : doc['name'];
     // final image = doc.data().toString().contains('c_imgUrl') ? doc['c_imgUrl'] : doc['imgUrl'];
-    final image = doc['imgUrl'];
 
-    return Padding(
-      padding: const EdgeInsets.only(right: 12.0),
-      child: Column(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.network(image, height: 100, width: 100, fit: BoxFit.cover),
-          ),
-          const SizedBox(height: 4),
-          Text(name, style: const TextStyle(color: Colors.white)),
-        ],
+    final image = doc['imgUrl'];
+    return GestureDetector(
+      onTap: () {
+        // 판매 상품인 경우만 이동 (product 컬렉션의 문서)
+        if (doc.reference.parent.id == 'product') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ProductViewPage(productId: doc.id),
+            ),
+          );
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.only(right: 12.0),
+        child: Column(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(image, height: 100, width: 100, fit: BoxFit.cover),
+            ),
+            const SizedBox(height: 4),
+            Text(name, style: const TextStyle(color: Colors.white)),
+          ],
+        ),
       ),
     );
   }
@@ -216,9 +230,9 @@ class _HomePageState extends State<HomePage> {
       //       const SizedBox(height: 20),
       //       buildSection('추천 상품', Icons.recommend, recommendedList, () => fetchRecommended(), hasMoreRecommended,),
       //       const SizedBox(height: 20),
-      //       buildSection('🔥 인기 상품', Icons.local_fire_department, popularList, fetchPopular, hasMorePopular,),
+      //       buildSection(' 인기 상품', Icons.local_fire_department, popularList, fetchPopular, hasMorePopular,),
       //       const SizedBox(height: 20),
-      //       buildSection('🛒 판매 상품', Icons.shopping_bag, productList, fetchProducts, hasMoreProduct,),
+      //       buildSection(' 판매 상품', Icons.shopping_bag, productList, fetchProducts, hasMoreProduct,),
       //     ],
       //   ),
       // ),
