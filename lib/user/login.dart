@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // 추가
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'join.dart';
 import '/page/home.dart';
 import 'find_Id.dart';
 import 'find_Pw.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -17,10 +20,46 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _pwController = TextEditingController();
   bool _rememberId = false;
+  bool _autoLogin = false;
 
   final Color orange = const Color(0xFFE94E2B);
   final Color backgroundColor = const Color(0xFF1F1F1F);
   final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAutoLogin();
+    _loadSavedEmail();
+  }
+
+  void _checkAutoLogin() async {
+    final prefs = await SharedPreferences.getInstance();
+    final autoLogin = prefs.getBool('auto_login') ?? false;
+    final currentUser = FirebaseAuth.instance.currentUser;
+
+    if (autoLogin && currentUser != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomePage()),
+        );
+      });
+    }
+  }
+
+  void _loadSavedEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedEmail = prefs.getString('saved_email') ?? '';
+    final remember = prefs.getBool('remember_email') ?? false;
+
+    setState(() {
+      _rememberId = remember;
+      if (remember) {
+        _emailController.text = savedEmail;
+      }
+    });
+  }
 
   void _login() async {
     final email = _emailController.text.trim();
@@ -36,7 +75,6 @@ class _LoginPageState extends State<LoginPage> {
     try {
       await _auth.signInWithEmailAndPassword(email: email, password: pw);
 
-      // ✅ 이메일 저장 여부 처리
       final prefs = await SharedPreferences.getInstance();
       if (_rememberId) {
         await prefs.setString('saved_email', email);
@@ -46,32 +84,91 @@ class _LoginPageState extends State<LoginPage> {
         await prefs.setBool('remember_email', false);
       }
 
+      if (_autoLogin) {
+        await prefs.setBool('auto_login', true);
+      } else {
+        await prefs.setBool('auto_login', false);
+      }
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const HomePage()),
       );
-    } on FirebaseAuthException catch (e) {
-      String msg = '로그인 실패';
-      if (e.code == 'user-not-found') {
-        msg = '존재하지 않는 이메일입니다';
-      } else if (e.code == 'wrong-password') {
-        msg = '비밀번호가 틀렸습니다';
-      } else if (e.code == 'invalid-email') {
-        msg = '이메일 형식이 올바르지 않습니다';
-      }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('에러 발생: $e')),
+        SnackBar(content: Text('로그인 실패: $e')),
       );
     }
   }
 
-  Widget _buildSocialButton(Color color, String text, IconData icon) {
+  Future<void> _signInWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) return;
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      final firebaseUser = userCredential.user;
+
+      if (firebaseUser != null) {
+        final firestore = FirebaseFirestore.instance;
+
+        final existCheck = await firestore.collection('users')
+            .where('email', isEqualTo: firebaseUser.email)
+            .get();
+
+        if (existCheck.docs.isEmpty) {
+          final snapshot = await firestore.collection('users')
+              .orderBy('uid', descending: true)
+              .limit(1)
+              .get();
+
+          String newUid = 'user1';
+          if (snapshot.docs.isNotEmpty) {
+            final lastUid = snapshot.docs.first['uid'];
+            final number = int.tryParse(lastUid.replaceAll('user', '')) ?? 0;
+            newUid = 'user${number + 1}';
+          }
+
+          await firestore.collection('users').doc(firebaseUser.uid).set({
+            'uid': newUid,
+            'email': firebaseUser.email,
+            'name': firebaseUser.displayName ?? '',
+            'address': '',
+            'loginType': 'google',
+            'password': 'test1234!',
+            'createdAt': Timestamp.now(),
+          });
+        }
+
+        final prefs = await SharedPreferences.getInstance();
+        if (_autoLogin) {
+          await prefs.setBool('auto_login', true);
+        } else {
+          await prefs.setBool('auto_login', false);
+        }
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Google 로그인 실패: $e')),
+      );
+    }
+  }
+
+  Widget _buildSocialButton(Color color, String text, IconData icon, VoidCallback onPressed) {
     return ElevatedButton.icon(
-      onPressed: () {
-        // 소셜 로그인 로직 추가 예정
-      },
+      onPressed: onPressed,
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
         foregroundColor: Colors.black,
@@ -81,24 +178,6 @@ class _LoginPageState extends State<LoginPage> {
       icon: Icon(icon, color: Colors.black),
       label: Text(text, style: const TextStyle(fontWeight: FontWeight.bold)),
     );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSavedEmail();
-  }
-  void _loadSavedEmail() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedEmail = prefs.getString('saved_email') ?? '';
-    final remember = prefs.getBool('remember_email') ?? false;
-
-    setState(() {
-      _rememberId = remember;
-      if (remember) {
-        _emailController.text = savedEmail;
-      }
-    });
   }
 
   @override
@@ -112,15 +191,7 @@ class _LoginPageState extends State<LoginPage> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 40),
-              Text(
-                'ARcohol',
-                style: TextStyle(
-                  color: orange,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.5,
-                ),
-              ),
+              Text('ARcohol', style: TextStyle(color: orange, fontSize: 32, fontWeight: FontWeight.bold)),
               const SizedBox(height: 40),
               TextField(
                 controller: _emailController,
@@ -131,9 +202,7 @@ class _LoginPageState extends State<LoginPage> {
                   hintStyle: const TextStyle(color: Colors.white54),
                   filled: true,
                   fillColor: Colors.grey[800],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 ),
               ),
               const SizedBox(height: 16),
@@ -146,36 +215,38 @@ class _LoginPageState extends State<LoginPage> {
                   hintStyle: const TextStyle(color: Colors.white54),
                   filled: true,
                   fillColor: Colors.grey[800],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 ),
               ),
               const SizedBox(height: 8),
               Row(
                 children: [
                   Checkbox(
+                    value: _autoLogin,
+                    onChanged: (val) => setState(() => _autoLogin = val!),
+                    checkColor: Colors.black,
+                    activeColor: Colors.white,
+                  ),
+                  const Text('자동 로그인', style: TextStyle(color: Colors.white70)),
+                ],
+              ),
+              Row(
+                children: [
+                  Checkbox(
                     value: _rememberId,
-                    onChanged: (val) {
-                      setState(() {
-                        _rememberId = val!;
-                      });
-                    },
+                    onChanged: (val) => setState(() => _rememberId = val!),
                     checkColor: Colors.black,
                     activeColor: Colors.white,
                   ),
                   const Text('이메일 저장', style: TextStyle(color: Colors.white70)),
                 ],
               ),
-              const SizedBox(height: 8),
               ElevatedButton(
                 onPressed: _login,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: orange,
                   minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 child: const Text('로그인', style: TextStyle(fontSize: 16, color: Colors.white)),
               ),
@@ -184,32 +255,17 @@ class _LoginPageState extends State<LoginPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const FindIdPage()),
-                      );
-                    },
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FindIdPage())),
                     child: const Text('이메일 찾기', style: TextStyle(color: Colors.white70)),
                   ),
                   const Text('|', style: TextStyle(color: Colors.white38)),
                   TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const FindPwPage()),
-                      );
-                    },
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FindPwPage())),
                     child: const Text('비밀번호 찾기', style: TextStyle(color: Colors.white70)),
                   ),
                   const Text('|', style: TextStyle(color: Colors.white38)),
                   TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const JoinPage()),
-                      );
-                    },
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const JoinPage())),
                     child: const Text('회원가입', style: TextStyle(color: Colors.redAccent)),
                   ),
                 ],
@@ -217,11 +273,7 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 20),
               const Text('간편 로그인', style: TextStyle(color: Colors.white70)),
               const SizedBox(height: 12),
-              _buildSocialButton(Colors.white, 'Sign in with Google', Icons.g_mobiledata),
-              const SizedBox(height: 8),
-              _buildSocialButton(Colors.green, '네이버 로그인', Icons.nature),
-              const SizedBox(height: 8),
-              _buildSocialButton(Colors.yellow, '카카오 로그인', Icons.chat_bubble),
+              _buildSocialButton(Colors.white, 'Sign in with Google', Icons.g_mobiledata, _signInWithGoogle),
             ],
           ),
         ),

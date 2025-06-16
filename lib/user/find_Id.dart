@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class FindIdPage extends StatefulWidget {
   const FindIdPage({super.key});
@@ -32,12 +33,77 @@ class _FindIdPageState extends State<FindIdPage> {
     super.dispose();
   }
 
-  void _findId() {
-    // ID 찾기 로직 구현
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('이메일 찾기 기능은 아직 구현되지 않았습니다.')),
-    );
+  Future<void> _findId() async {
+    final name = _nameController.text.trim();
+    final phoneInput = _phoneController.text.trim();
+    final normalizedPhone = normalizePhone(phoneInput);
+
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('name', isEqualTo: name)
+          .where('phone', isEqualTo: normalizedPhone)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        final userDoc = querySnapshot.docs.first;
+        final email = userDoc['email'] ?? '';
+        final masked = _maskEmail(email);
+
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('이메일 찾기 결과'),
+            content: Text('가입된 이메일은\n$masked 입니다.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context); // 먼저 dialog 닫고
+                  Navigator.pushReplacementNamed(context, '/login'); // 로그인 페이지로 이동
+                },
+                child: const Text('확인'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('일치하는 회원 정보를 찾을 수 없습니다.')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('오류가 발생했습니다. 다시 시도해주세요.')),
+      );
+    }
   }
+
+  String normalizePhone(String input) {
+    final digits = input.replaceAll(RegExp(r'\D'), ''); // 숫자만 추출
+    if (digits.length == 11 && digits.startsWith('010')) {
+      final part1 = digits.substring(3, 7);
+      final part2 = digits.substring(7);
+      return '+82 10-$part1-$part2';
+    }
+    return input;
+  }
+
+  String _maskEmail(String email) {
+    final parts = email.split('@');
+    if (parts.length != 2) return email;
+
+    final local = parts[0];
+    final domain = parts[1];
+
+    if (local.length < 3) {
+      return '*@$domain';
+    } else {
+      final visible = local.substring(0, local.length - 3);
+      return '$visible***@$domain';
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -67,10 +133,7 @@ class _FindIdPageState extends State<FindIdPage> {
             const SizedBox(height: 40),
             Align(
               alignment: Alignment.centerLeft,
-              child: const Text(
-                '이름',
-                style: TextStyle(color: Colors.white),
-              ),
+              child: const Text('이름', style: TextStyle(color: Colors.white)),
             ),
             const SizedBox(height: 8),
             TextField(
@@ -89,10 +152,8 @@ class _FindIdPageState extends State<FindIdPage> {
             const SizedBox(height: 20),
             Align(
               alignment: Alignment.centerLeft,
-              child: const Text(
-                '휴대폰 번호',
-                style: TextStyle(color: Colors.white),
-              ),
+              child:
+              const Text('휴대폰 번호', style: TextStyle(color: Colors.white)),
             ),
             const SizedBox(height: 8),
             TextField(

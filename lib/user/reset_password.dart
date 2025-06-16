@@ -1,38 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class ResetPasswordPage extends StatefulWidget {
-  const ResetPasswordPage({super.key});
-
-  @override
-  State<ResetPasswordPage> createState() => _ResetPasswordPageState();
-}
-
-class _ResetPasswordPageState extends State<ResetPasswordPage> {
-  final _pwController = TextEditingController();
-  final _confirmController = TextEditingController();
+class ResetPasswordPage extends StatelessWidget {
+  final String email;
+  const ResetPasswordPage({super.key, required this.email});
 
   final Color backgroundColor = const Color(0xFF1F1F1F);
   final Color orange = const Color(0xFFE94E2B);
 
-  bool get _isMatch =>
-      _pwController.text.trim().isNotEmpty &&
-          _pwController.text == _confirmController.text;
-
-  void _resetPassword() {
-    // TODO: 실제로는 서버에 비밀번호 변경 요청을 보내야 함
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('비밀번호가 성공적으로 변경되었습니다.')),
-    );
-
-    // 로그인 화면으로 되돌아가기 (맨 처음 화면으로)
-    Navigator.popUntil(context, (route) => route.isFirst);
-  }
-
-  @override
-  void dispose() {
-    _pwController.dispose();
-    _confirmController.dispose();
-    super.dispose();
+  Future<void> _sendResetLink(BuildContext context) async {
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('비밀번호 재설정 링크가\n$email 으로 전송되었습니다.')),
+      );
+      Navigator.popUntil(context, (route) => route.isFirst); // 홈으로 이동
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('전송 실패: ${e.message}')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('알 수 없는 오류: $e')),
+      );
+    }
   }
 
   @override
@@ -47,70 +38,35 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         elevation: 0,
       ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const SizedBox(height: 20),
-            Text(
+            const Text(
               'ARcohol',
               style: TextStyle(
-                color: orange,
+                color: Color(0xFFE94E2B),
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 40),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: const Text('새 비밀번호', style: TextStyle(color: Colors.white)),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _pwController,
-              obscureText: true,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: '새 비밀번호를 입력하세요',
-                hintStyle: const TextStyle(color: Colors.white54),
-                filled: true,
-                fillColor: Colors.grey[800],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Align(
-              alignment: Alignment.centerLeft,
-              child:
-              const Text('비밀번호 확인', style: TextStyle(color: Colors.white)),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _confirmController,
-              obscureText: true,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: '비밀번호를 다시 입력하세요',
-                hintStyle: const TextStyle(color: Colors.white54),
-                filled: true,
-                fillColor: Colors.grey[800],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
+            Text(
+              '$email\n으로 비밀번호 재설정 메일을 전송하시겠습니까?',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
             ),
             const Spacer(),
             ElevatedButton(
-              onPressed: _isMatch ? _resetPassword : null,
+              onPressed: () => _sendResetLink(context),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _isMatch ? orange : Colors.grey,
+                backgroundColor: orange,
                 minimumSize: const Size(double.infinity, 50),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              child: const Text('비밀번호 변경', style: TextStyle(color: Colors.white)),
+              child: const Text('재설정 링크 전송', style: TextStyle(color: Colors.white)),
             ),
             const SizedBox(height: 32),
           ],
