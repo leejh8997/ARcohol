@@ -302,6 +302,7 @@ class _ProductOrderPageState extends State<ProductOrderPage> {
                                   'addressDetail': userData!['addressDetail'],
                                   'memo': selectedMemo == '직접 입력하기' ? customMemoController.text : selectedMemo,
                                   'o_createdAt': now,
+                                  'status': 'ordered'
                                 });
 
                                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ 주문 저장 완료!')));

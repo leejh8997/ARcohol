@@ -51,6 +51,7 @@ class _BuyProductPageState extends State<BuyProductPage> {
               stream: FirebaseFirestore.instance
                   .collection('orders')
                   .where('userId', isEqualTo: user?.uid)
+                  .where('status', isEqualTo: 'ordered')
                   .orderBy('o_createdAt', descending: true)
                   .snapshots(),
               builder: (context, snap) {
