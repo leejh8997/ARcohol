@@ -589,34 +589,35 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
         ),
         onChanged: onChanged,
         validator: (value) {
-          if (value == null || value.isEmpty) return '$label 입력하세요';
+          final trimmed = value?.trim() ?? '';
+          if (trimmed.isEmpty) return '$label 입력하세요';
           if (label == '이메일') {
             final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-            if (!emailRegex.hasMatch(value)) return '유효한 이메일 형식이 아닙니다';
+            if (!emailRegex.hasMatch(trimmed)) return '유효한 이메일 형식이 아닙니다';
           }
-          if (label == '비밀번호 확인' && value != _pwController.text)
+          if (label == '비밀번호 확인' && trimmed != _pwController.text.trim()) {
             return '비밀번호가 일치하지 않습니다';
+          }
           if (label == '비밀번호') {
-            if (value.length < 8) return '최소 8자 이상 입력하세요';
-            if (!RegExp(r'[!@#\$%^&*(),.?":{}|<>_\-\\\/]').hasMatch(value)) {
+            if (trimmed.length < 8) return '최소 8자 이상 입력하세요';
+            if (!RegExp(r'[!@#\$%^&*(),.?":{}|<>_\-\\\/]').hasMatch(trimmed)) {
               return '특수문자 1개 이상 포함해야 합니다';
             }
           }
-          if (label == '휴대폰 번호' && value.length < 10)
+          if (label == '휴대폰 번호' && trimmed.length < 10) {
             return '올바른 휴대폰 번호를 입력하세요';
+          }
           if (label.contains('생년월일')) {
-            if (value.length != 8) return '생년월일은 8자리로 입력하세요 (YYYYMMDD)';
-            final year = int.tryParse(value.substring(0, 4));
-            final month = int.tryParse(value.substring(4, 6));
-            final day = int.tryParse(value.substring(6, 8));
-            if (year == null || month == null || day == null)
-              return '존재하지 않는 날짜입니다';
+            if (trimmed.length != 8) return '생년월일은 8자리로 입력하세요 (YYYYMMDD)';
+            final year = int.tryParse(trimmed.substring(0, 4));
+            final month = int.tryParse(trimmed.substring(4, 6));
+            final day = int.tryParse(trimmed.substring(6, 8));
+            if (year == null || month == null || day == null) return '존재하지 않는 날짜입니다';
             try {
               final birth = DateTime(year, month, day);
-              if (birth.year != year ||
-                  birth.month != month ||
-                  birth.day != day)
+              if (birth.year != year || birth.month != month || birth.day != day) {
                 return '존재하지 않는 날짜입니다';
+              }
               if (birth.isAfter(DateTime.now())) return '존재하지 않는 날짜입니다';
             } catch (_) {
               return '존재하지 않는 날짜입니다';

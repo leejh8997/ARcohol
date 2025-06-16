@@ -221,7 +221,7 @@ class _HomePageState extends State<HomePage> {
       //               builder: (BuildContext context) {
       //                 return ClipRRect(
       //                   borderRadius: BorderRadius.circular(8),
-      //                   child: Image.network(doc['c_imgUrl'], fit: BoxFit.cover, width: double.infinity),
+      //                   // child: Image.network(doc['c_imgUrl'], fit: BoxFit.cover, width: double.infinity),
       //                 );
       //               },
       //             );
