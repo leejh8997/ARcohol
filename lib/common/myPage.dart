@@ -21,6 +21,7 @@ import '../page/terms_of_service_page.dart';
 import '../page/customer_service_page.dart';
 import '../page/noticePage.dart';
 
+
 class MyPage extends StatefulWidget {
   const MyPage({super.key});
 
@@ -114,7 +115,7 @@ class _MyPageState extends State<MyPage> {
                 context,
                 Icons.shopping_cart,
                 '장바구니',
-                '/wishList',
+                '/mypage/wish',
               ),
               _buildIconButton(context, Icons.book, '마이레시피', '/mypage/recipe'),
               _buildIconButton(context, Icons.local_bar, '마이바', '/mybar'),
@@ -140,7 +141,7 @@ class _MyPageState extends State<MyPage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => RecipeViewPage(recipeId: recipe['id']!),
+                        builder: (_) => RecipeViewPage(recipeId: recipe['id']!), // 필요시 id 넘기기
                       ),
                     );
                   },
@@ -165,70 +166,40 @@ class _MyPageState extends State<MyPage> {
           const Divider(color: Colors.grey),
           _buildTextButton(context, '취소 · 반품 · 교환 내역', '/mypage/issue'),
           const Divider(color: Colors.grey),
-          _buildTextButton(context, '고객센터'),
+          _buildTextButton(context, '고객센터', '/mypage/service'),
           const Divider(color: Colors.grey),
-          _buildTextButton(context, '공지사항'),
+          _buildTextButton(context, '공지사항', '/mypage/notice'),
           const Divider(color: Colors.grey),
-          _buildTextButton(context, '개인정보 처리방침'),
+          _buildTextButton(context, '개인정보 처리방침', '/mypage/policy'),
           const Divider(color: Colors.grey),
-          _buildTextButton(context, '서비스 이용약관'),
+          _buildTextButton(context, '서비스 이용약관', '/mypage/terms'),
           const Divider(color: Colors.grey),
         ],
       ),
     );
   }
 
-  Widget _buildTextButton(
-    BuildContext context,
-    String label, [
-    String? routeName,
-  ]) {
-    return TextButton(
-      style: TextButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        alignment: Alignment.centerLeft,
-      ),
-      onPressed: () {
-        if (label == '고객센터') {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const CustomerServicePage()),
-          );
-        } else if (label == '공지사항') {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const NoticePage()),
-          );
-        } else if (label == '개인정보 처리방침') {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
-          );
-        } else if (label == '서비스 이용약관') {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const TermsOfServicePage()),
-          );
-        } else if (routeName != null) {
-          _navigateWithoutAnimation(context, routeName);
-        }
-      },
-      child: Text(label, style: const TextStyle(color: Color(0xFFFCD19C))),
-    );
-  }
+  Widget _buildIconButton(BuildContext context, IconData icon, String label, String routeName) {
 
-  Widget _buildIconButton(
-    BuildContext context,
-    IconData icon,
-    String label,
-    String route,
-  ) {
     return Column(
       children: [
         IconButton(
-          icon: Icon(icon, color: Colors.white),
-          onPressed: () => _navigateWithoutAnimation(context, route),
+          icon: Icon(icon, color: const Color(0xFFE94E2B)),
+          onPressed: () => _navigateWithoutAnimation(context, routeName),
         ),
-        Text(label, style: const TextStyle(color: Colors.white)),
+        Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
       ],
     );
   }
+
+  Widget _buildTextButton(BuildContext context, String label, [String? routeName]) {
+    return TextButton(
+      style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), alignment: Alignment.centerLeft),
+      onPressed: routeName != null ? () => _navigateWithoutAnimation(context, routeName) : null,
+      child: Text(label, style: const TextStyle(color: Color(0xFFFCD19C))),
+    );
+  }
+}
 
 void _navigateWithoutAnimation(BuildContext context, String routeName) {
   final routeWidgets = {
@@ -236,28 +207,38 @@ void _navigateWithoutAnimation(BuildContext context, String routeName) {
     '/mypage': const MyPage(),
     '/mypage/edit': const ProfileEditPage(),
     '/mypage/orders': const BuyProductPage(),
+    '/mypage/wish': const WishListPage(),
     '/mypage/recipe': const MyRecipePage(),
     '/mypage/issue': const OrderIssueLogPage(),
-    '/wishList': const WishListPage(),
+    '/mypage/service': const CustomerServicePage(),
+    '/mypage/notice': const NoticePage(),
+    '/mypage/policy': const PrivacyPolicyPage(),
+    '/mypage/terms': const TermsOfServicePage(),
     '/recipe': const RecipePage(),
     '/ar': const ArPage(),
     '/product': const ProductPage(),
     '/mybar': const MyBarPage(),
   };
 
+  final widget = routeWidgets[routeName] ?? const HomePage();
 
-    final widget = routeWidgets[routeName] ?? const HomePage();
-
-    if (['/mypage/edit', '/mypage/orders', '/mybar'].contains(routeName)) {
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => widget));
-    } else {
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (_, __, ___) => widget,
-          transitionDuration: Duration.zero,
-          reverseTransitionDuration: Duration.zero,
-        ),
-      );
-    }
+  if ([
+    '/mypage/edit',
+    '/mypage/orders',
+    '/mypage/wish',
+    '/mypage/issue',
+    '/mypage/service',
+    '/mypage/notice',
+    '/mypage/policy',
+    '/mypage/terms',
+    '/mybar',
+  ].contains(routeName)) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => widget));
+  } else {
+    Navigator.of(context).pushReplacement(PageRouteBuilder(
+      pageBuilder: (_, __, ___) => widget,
+      transitionDuration: Duration.zero,
+      reverseTransitionDuration: Duration.zero,
+    ));
   }
 }

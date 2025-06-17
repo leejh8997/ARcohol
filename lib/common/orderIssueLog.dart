@@ -39,6 +39,11 @@ class _OrderIssueLogPageState extends State<OrderIssueLogPage>
     return DateFormat('yyyy.MM.dd').format(date);
   }
 
+  Future<Map<String, dynamic>?> fetchProductInfo(String productId) async {
+    final snap = await FirebaseFirestore.instance.collection('product').doc(productId).get();
+    return snap.exists ? snap.data() : null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final userId = FirebaseAuth.instance.currentUser?.uid;
@@ -58,7 +63,7 @@ class _OrderIssueLogPageState extends State<OrderIssueLogPage>
               controller: _tabController,
               indicatorColor: primaryColor,
               labelColor: primaryColor,
-              unselectedLabelColor: Colors.white54,
+              unselectedLabelColor: accent,
               tabs: tabs.map((tab) => Tab(text: tab)).toList(),
             ),
           ),
@@ -86,92 +91,121 @@ class _OrderIssueLogPageState extends State<OrderIssueLogPage>
                   itemBuilder: (context, index) {
                     final data = orders[index].data() as Map<String, dynamic>;
                     final item = (data['items'] as List).first;
+                    final itemId = item['itemId'];
                     final productName = item['pName'] ?? '-';
                     final imgUrl = item['imgUrl'] ?? '';
                     final quantity = item['quantity'] ?? 1;
                     final reason = data['reason'] ?? '-';
+                    final paymentMethod = data['payment']?['method'] ?? '-';
 
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: midBg,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(formatDate(data['o_createdAt']),
-                                  style: const TextStyle(color: Colors.white)),
-                              Text(
-                                currentStatus == 'cancelled'
-                                    ? '취소 완료'
-                                    : currentStatus == 'exchange'
-                                    ? '교환 완료'
-                                    : '반품 완료',
-                                style: TextStyle(color: primaryColor),
-                              ),
-                              Text(formatDate(data['issue_createdAt']),
-                                  style: const TextStyle(color: Colors.white70)),
-                            ],
+                    return FutureBuilder<Map<String, dynamic>?> (
+                      future: fetchProductInfo(itemId),
+                      builder: (context, snapshot) {
+                        final product = snapshot.data;
+                        final capacity = product?['capacity'] ?? '-';
+                        final size = product?['size'] ?? '-';
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: midBg,
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          const SizedBox(height: 8),
-                          Text('${data['address']} ${data['addressDetail']}',
-                              style: const TextStyle(color: Colors.white70)),
-                          const SizedBox(height: 12),
-                          Row(
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  imgUrl,
-                                  width: 100,
-                                  height: 100,
-                                  fit: BoxFit.cover,
-                                ),
+                              Row(
+                                children: [
+                                  Text(formatDate(data['o_createdAt']),
+                                      style: TextStyle(color: accent, fontWeight: FontWeight.bold)),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    currentStatus == 'cancelled'
+                                        ? '취소 완료'
+                                        : currentStatus == 'exchange'
+                                        ? '교환 완료'
+                                        : '반품 완료',
+                                    style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(formatDate(data['issue_createdAt']),
+                                      style: const TextStyle(color: Colors.white70)),
+                                ],
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(productName,
-                                        style: const TextStyle(
-                                            color: Colors.white, fontWeight: FontWeight.bold)),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '용량: ${item['capacity'] ?? '-'}, 사이즈: ${item['size'] ?? '-'}',
-                                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                              const SizedBox(height: 8),
+                              Text('${data['address']} ${data['addressDetail']}',
+                                  style: const TextStyle(color: Colors.white70)),
+                              const SizedBox(height: 12),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      imgUrl,
+                                      width: 100,
+                                      height: 100,
+                                      fit: BoxFit.cover,
                                     ),
-                                    const SizedBox(height: 4),
-                                    Text('사유: $reason',
-                                        style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                                  ],
-                                ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                border: Border.all(color: primaryColor),
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: Text(
+                                                paymentMethod == 'card' ? '카드결제' : paymentMethod,
+                                                style: TextStyle(color: primaryColor, fontSize: 12),
+                                              ),
+                                            ),
+                                            Text('${quantity}개', style: const TextStyle(color: Colors.white)),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(productName,
+                                            style: const TextStyle(
+                                                color: Colors.white, fontWeight: FontWeight.bold)),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '용량: $capacity, 사이즈: $size',
+                                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text('사유: $reason',
+                                            style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
+                              const SizedBox(height: 12),
+                              Center(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: primaryColor),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    '총 주문금액: ${data['totalPrice']}원',
+                                    style: TextStyle(color: primaryColor),
+                                  ),
+                                ),
+                              )
                             ],
                           ),
-                          const SizedBox(height: 12),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: primaryColor),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                '총 주문금액: ${data['totalPrice']}원',
-                                style: TextStyle(color: primaryColor),
-                              ),
-                            ),
-                          )
-                        ],
-                      ),
+                        );
+                      },
                     );
                   },
                 );
