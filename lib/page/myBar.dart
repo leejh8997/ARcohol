@@ -7,6 +7,7 @@ import '../common/bottomBar.dart';
 import '../myBar/ingredientsList.dart';
 import '../myBar/ingredientsView.dart';
 import '../myBar/inventory_tab.dart';
+import '../myBar/suggestRecipe.dart';
 
 final GlobalKey<NavigatorState> _nestedNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -72,7 +73,7 @@ class _MyBarPageState extends State<MyBarPage> with TickerProviderStateMixin {
             child: TabBarView(
               controller: _tabController,
               children: [
-                const Center(child: Text("추천 가능한 레시피 리스트", style: TextStyle(color: Colors.white))),
+              const SuggestRecipe(),
                 Navigator(
                   key: _nestedNavigatorKey,
                   onGenerateRoute: (settings) {
