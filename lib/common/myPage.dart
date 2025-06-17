@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../page/arCamera.dart';
-import '../page/home.dart';
-import '../page/myBar.dart';
-import '../page/product.dart';
+
 import 'appBar.dart';
 import 'bottomBar.dart';
 import 'profileEdit.dart';
@@ -12,9 +9,17 @@ import 'buyProduct.dart';
 import 'wishList.dart';
 import 'myRecipe.dart';
 import 'orderIssueLog.dart';
+
+import '../page/arCamera.dart';
+import '../page/home.dart';
+import '../page/myBar.dart';
+import '../page/product.dart';
 import '../page/recipe.dart';
 import '../page/recipeView.dart';
-import '../page/privacy_policy_page.dart'; // ✅ 개인정보 처리방침 페이지
+import '../page/privacy_policy_page.dart';
+import '../page/terms_of_service_page.dart';
+import '../page/customer_service_page.dart';
+import '../page/noticePage.dart';
 
 class MyPage extends StatefulWidget {
   const MyPage({super.key});
@@ -29,16 +34,19 @@ class _MyPageState extends State<MyPage> {
 
   final recentRecipes = [
     {
-      'imgUrl': 'https://masileng-bucket.s3.ap-northeast-2.amazonaws.com/TB_COCK_MASTER/07.%EB%B8%94%EB%A3%A8%ED%95%98%EC%99%80%EC%9D%B4.jpg',
-      'id': 'r1'
+      'imgUrl':
+          'https://masileng-bucket.s3.ap-northeast-2.amazonaws.com/TB_COCK_MASTER/07.%EB%B8%94%EB%A3%A8%ED%95%98%EC%99%80%EC%9D%B4.jpg',
+      'id': 'r1',
     },
     {
-      'imgUrl': 'https://img.daily.co.kr/@files/www.daily.co.kr/content/food/2017/20170829/994eb0ffd02773ad0fed1d3a3fa09612.png',
-      'id': 'r2'
+      'imgUrl':
+          'https://img.daily.co.kr/@files/www.daily.co.kr/content/food/2017/20170829/994eb0ffd02773ad0fed1d3a3fa09612.png',
+      'id': 'r2',
     },
     {
-      'imgUrl': 'https://www.hakushika.co.jp/kr/enjoy/images/sp_img01_autumn_moon.jpg',
-      'id': 'r3'
+      'imgUrl':
+          'https://www.hakushika.co.jp/kr/enjoy/images/sp_img01_autumn_moon.jpg',
+      'id': 'r3',
     },
   ];
 
@@ -51,7 +59,10 @@ class _MyPageState extends State<MyPage> {
   Future<void> _fetchUserName() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
       if (doc.exists) {
         setState(() {
           userName = doc.data()?['name'] ?? '사용자';
@@ -76,7 +87,11 @@ class _MyPageState extends State<MyPage> {
             child: TextButton(
               onPressed: () {
                 Navigator.of(context)
-                    .push(MaterialPageRoute(builder: (_) => const ProfileEditPage()))
+                    .push(
+                      MaterialPageRoute(
+                        builder: (_) => const ProfileEditPage(),
+                      ),
+                    )
                     .then((_) => _fetchUserName());
               },
               child: Text(
@@ -89,8 +104,18 @@ class _MyPageState extends State<MyPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildIconButton(context, Icons.receipt, '주문내역', '/mypage/orders'),
-              _buildIconButton(context, Icons.shopping_cart, '장바구니', '/wishList'),
+              _buildIconButton(
+                context,
+                Icons.receipt,
+                '주문내역',
+                '/mypage/orders',
+              ),
+              _buildIconButton(
+                context,
+                Icons.shopping_cart,
+                '장바구니',
+                '/wishList',
+              ),
               _buildIconButton(context, Icons.book, '마이레시피', '/mypage/recipe'),
               _buildIconButton(context, Icons.local_bar, '마이바', '/mybar'),
             ],
@@ -98,7 +123,10 @@ class _MyPageState extends State<MyPage> {
           const SizedBox(height: 16),
           const Divider(color: Colors.grey),
           const SizedBox(height: 16),
-          const Text('최근 본 상품', style: TextStyle(color: Colors.white, fontSize: 16)),
+          const Text(
+            '최근 본 상품',
+            style: TextStyle(color: Colors.white, fontSize: 16),
+          ),
           const SizedBox(height: 8),
           SizedBox(
             height: 100,
@@ -139,22 +167,43 @@ class _MyPageState extends State<MyPage> {
           const Divider(color: Colors.grey),
           _buildTextButton(context, '고객센터'),
           const Divider(color: Colors.grey),
+          _buildTextButton(context, '공지사항'),
+          const Divider(color: Colors.grey),
           _buildTextButton(context, '개인정보 처리방침'),
+          const Divider(color: Colors.grey),
+          _buildTextButton(context, '서비스 이용약관'),
+          const Divider(color: Colors.grey),
         ],
       ),
     );
   }
 
-  Widget _buildTextButton(BuildContext context, String label, [String? routeName]) {
+  Widget _buildTextButton(
+    BuildContext context,
+    String label, [
+    String? routeName,
+  ]) {
     return TextButton(
       style: TextButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 16),
         alignment: Alignment.centerLeft,
       ),
       onPressed: () {
-        if (label == '개인정보 처리방침') {
+        if (label == '고객센터') {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const CustomerServicePage()),
+          );
+        } else if (label == '공지사항') {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const NoticePage()),
+          );
+        } else if (label == '개인정보 처리방침') {
           Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
+          );
+        } else if (label == '서비스 이용약관') {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const TermsOfServicePage()),
           );
         } else if (routeName != null) {
           _navigateWithoutAnimation(context, routeName);
@@ -164,7 +213,12 @@ class _MyPageState extends State<MyPage> {
     );
   }
 
-  Widget _buildIconButton(BuildContext context, IconData icon, String label, String route) {
+  Widget _buildIconButton(
+    BuildContext context,
+    IconData icon,
+    String label,
+    String route,
+  ) {
     return Column(
       children: [
         IconButton(
@@ -204,18 +258,16 @@ void _navigateWithoutAnimation(BuildContext context, String routeName) {
 
     final widget = routeWidgets[routeName] ?? const HomePage();
 
-    if ([
-      '/mypage/edit',
-      '/mypage/orders',
-      '/mybar',
-    ].contains(routeName)) {
+    if (['/mypage/edit', '/mypage/orders', '/mybar'].contains(routeName)) {
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => widget));
     } else {
-      Navigator.of(context).pushReplacement(PageRouteBuilder(
-        pageBuilder: (_, __, ___) => widget,
-        transitionDuration: Duration.zero,
-        reverseTransitionDuration: Duration.zero,
-      ));
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => widget,
+          transitionDuration: Duration.zero,
+          reverseTransitionDuration: Duration.zero,
+        ),
+      );
     }
   }
 }

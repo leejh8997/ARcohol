@@ -172,15 +172,8 @@ class _LoginPageState extends State<LoginPage> {
           : await UserApi.instance.loginWithKakaoAccount();
 
       final user = await UserApi.instance.me();
-      final email = user.kakaoAccount?.email ?? '';
-      final name = user.kakaoAccount?.profile?.nickname ?? '';
-
-      if (email.isEmpty) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('카카오 계정에 이메일이 없습니다.')));
-        return;
-      }
+      String email = user.kakaoAccount?.email ?? 'kakao_${user.id}@placeholder.com';
+      String name = user.kakaoAccount?.profile?.nickname ?? 'ARcohol 관리자';
 
       final firestore = FirebaseFirestore.instance;
       final existCheck = await firestore
