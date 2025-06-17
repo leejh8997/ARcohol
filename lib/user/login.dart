@@ -142,7 +142,9 @@ class _LoginPageState extends State<LoginPage> {
             'uid': newUid,
             'email': firebaseUser.email,
             'name': firebaseUser.displayName ?? '',
-            'address': '',
+            'address': '부평 스테이션타워',
+            'addressDetail': '7층',
+            'brith': '19940609',
             'loginType': 'google',
             'password': 'test1234!',
             'createdAt': Timestamp.now(),
@@ -172,15 +174,8 @@ class _LoginPageState extends State<LoginPage> {
           : await UserApi.instance.loginWithKakaoAccount();
 
       final user = await UserApi.instance.me();
-      final email = user.kakaoAccount?.email ?? '';
-      final name = user.kakaoAccount?.profile?.nickname ?? '';
-
-      if (email.isEmpty) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('카카오 계정에 이메일이 없습니다.')));
-        return;
-      }
+      String email = user.kakaoAccount?.email ?? 'kakao_${user.id}@placeholder.com';
+      String name = user.kakaoAccount?.profile?.nickname ?? 'ARcohol 관리자';
 
       final firestore = FirebaseFirestore.instance;
       final existCheck = await firestore
@@ -206,8 +201,11 @@ class _LoginPageState extends State<LoginPage> {
           'uid': newUid,
           'email': email,
           'name': name,
-          'address': '',
+          'address': '부평 스테이션타워',
+          'addressDetail': '7층',
+          'brith': '19940609',
           'loginType': 'kakao',
+          'password': 'test1234!',
           'createdAt': Timestamp.now(),
         });
       }
