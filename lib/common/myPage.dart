@@ -11,6 +11,7 @@ import 'profileEdit.dart';
 import 'buyProduct.dart';
 import 'wishList.dart';
 import 'myRecipe.dart';
+import 'orderIssueLog.dart';
 import '../page/recipe.dart';
 import '../page/recipeView.dart';
 import '../page/privacy_policy_page.dart'; // ✅ 개인정보 처리방침 페이지
@@ -134,7 +135,7 @@ class _MyPageState extends State<MyPage> {
           const Divider(color: Colors.grey),
           _buildTextButton(context, '주문 내역', '/mypage/orders'),
           const Divider(color: Colors.grey),
-          _buildTextButton(context, '취소 · 반품 · 교환 내역'),
+          _buildTextButton(context, '취소 · 반품 · 교환 내역', '/mypage/issue'),
           const Divider(color: Colors.grey),
           _buildTextButton(context, '고객센터'),
           const Divider(color: Colors.grey),
@@ -175,19 +176,31 @@ class _MyPageState extends State<MyPage> {
     );
   }
 
-  void _navigateWithoutAnimation(BuildContext context, String routeName) {
-    final routeWidgets = {
-      '/home': const HomePage(),
-      '/mypage': const MyPage(),
-      '/mypage/edit': const ProfileEditPage(),
-      '/mypage/orders': const BuyProductPage(),
-      '/mypage/recipe': const MyRecipePage(),
-      '/wishList': const WishListPage(),
-      '/recipe': const RecipePage(),
-      '/ar': const ArPage(),
-      '/product': const ProductPage(),
-      '/mybar': const MyBarPage(),
-    };
+
+  Widget _buildTextButton(BuildContext context, String label, [String? routeName]) {
+    return TextButton(
+      style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), alignment: Alignment.centerLeft),
+      onPressed: routeName != null ? () => _navigateWithoutAnimation(context, routeName) : null,
+      child: Text(label, style: const TextStyle(color: Color(0xFFFCD19C))),
+    );
+  }
+}
+
+void _navigateWithoutAnimation(BuildContext context, String routeName) {
+  final routeWidgets = {
+    '/home': const HomePage(),
+    '/mypage': const MyPage(),
+    '/mypage/edit': const ProfileEditPage(),
+    '/mypage/orders': const BuyProductPage(),
+    '/mypage/recipe': const MyRecipePage(),
+    '/mypage/issue': const OrderIssueLogPage(),
+    '/wishList': const WishListPage(),
+    '/recipe': const RecipePage(),
+    '/ar': const ArPage(),
+    '/product': const ProductPage(),
+    '/mybar': const MyBarPage(),
+  };
+
 
     final widget = routeWidgets[routeName] ?? const HomePage();
 
