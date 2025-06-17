@@ -1,6 +1,6 @@
 
 <div align="center">
-  <img src="https://github.com/Taehun92/Project_Kapture/blob/main/kapture_Logo(1)_500x400.png">
+  "https://github.com/leejh8997/ARcohol/blob/developer/assets/ARcohol4.png"
 </div>
 
 <div style="text-align:left;">
