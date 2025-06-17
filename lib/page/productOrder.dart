@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:portone_flutter/portone_flutter.dart';
+import 'package:portone_flutter/model/payment_data.dart';
+
 
 class ProductOrderPage extends StatefulWidget {
   final Map<String, dynamic> product;
@@ -232,11 +235,89 @@ class _ProductOrderPageState extends State<ProductOrderPage> {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      // 결제 처리 로직
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => IamportPayment(
+                            appBar: AppBar(
+                              title: const Text('KG 이니시스 결제'),
+                              backgroundColor: Colors.black,
+                            ),
+                            initialChild: Container(
+                              child: const Center(child: CircularProgressIndicator()),
+                            ),
+                            userCode: 'imp14397622', // 👉 포트원 가맹점 식별코드로 교체
+                            data: PaymentData(
+                              pg: 'INIBillTst',
+                              payMethod: 'card',
+                              name: product['name'],
+                              // amount: product['price'] * quantity,
+                              amount: 100,
+                              buyerName: userData?['name'],
+                              buyerEmail: userData?['email'],
+                              buyerTel: userData?['phone'],
+                              buyerAddr: '${userData?['address']} ${userData?['addressDetail']}',
+                              buyerPostcode: '06236',
+                              merchantUid: 'test_mbyk0zlh',
+                              appScheme: 'arcohol', // 주소에 따라 적절히 처리
+                            ),
+                            callback: (result) async {
+                              print('콜백 결과 $result');
+
+                              final impSuccess = result['imp_success'] == true || result['imp_success'] == 'true';
+
+                              if (!impSuccess) {
+                                print('❌ 결제 실패: ${result['error_msg'] ?? result['fail_reason']}');
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('❌ 결제 실패')));
+                                return;
+                              }
+
+                              try {
+                                final orderRef = FirebaseFirestore.instance.collection('orders').doc();
+                                final now = FieldValue.serverTimestamp();
+                                await orderRef.set({
+                                  'orderId': orderRef.id,
+                                  'userId': user!.uid,
+                                  'items': [{
+                                    'itemId': widget.product['productId'],
+                                    'pName': widget.product['name'],
+                                    'quantity': quantity,
+                                    'imgUrl': widget.product['imgUrl'],
+                                  }],
+                                  'totalPrice': totalPrice,
+                                  'payment': {
+                                    'method': result['pay_method'] ?? result['payment_method'] ?? 'card',
+                                    'status': 'paid',
+                                    'paidAt': now,
+                                    'imp_uid': result['imp_uid'],
+                                    'merchant_uid': result['merchant_uid'],
+                                  },
+                                  'delivery': {
+                                    'status': 'preparing',
+                                    'carrier': 'cj대한통운',
+                                    'trackingNumber': '123-456',
+                                    'updatedAt': now,
+                                  },
+                                  'address': userData!['address'],
+                                  'addressDetail': userData!['addressDetail'],
+                                  'memo': selectedMemo == '직접 입력하기' ? customMemoController.text : selectedMemo,
+                                  'o_createdAt': now,
+                                  'status': 'ordered'
+                                });
+
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ 주문 저장 완료!')));
+                                Navigator.pop(context);
+                              } catch (e) {
+                                print('❌ 주문 저장 실패: $e');
+                                ScaffoldMessenger.of(context)
+                                    .showSnackBar(const SnackBar(content: Text('❌ 주문 저장 실패')));
+                              }
+                            }
+                          ),
+                        ),
+                      );
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
-                    ),
+                    style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
                     child: const Text('결제하기'),
                   ),
                 ),

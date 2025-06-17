@@ -85,7 +85,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> fetchPopular() async {
     Query query = FirebaseFirestore.instance
         .collection('recipe')
-        .orderBy('likeCount', descending: true)
+        .orderBy('likes', descending: true)
         .limit(5);
 
     if (popularList.isNotEmpty) {

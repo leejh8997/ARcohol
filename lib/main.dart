@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart'; // ✅ Kakao SDK 추가
 
 import 'page/home.dart';
 import 'page/myBar.dart';
@@ -25,6 +27,10 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await initializeDateFormatting('ko_KR', null);
+
+  KakaoSdk.init(nativeAppKey: 'deba8198200e85d10e869be36ac90a4a'); // ✅ 카카오 초기화
+
   runApp(const MyApp());
 }
 
@@ -61,9 +67,9 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      initialRoute: '/', // 시작 라우트
+      initialRoute: '/',
       routes: {
-        '/': (context) => const LoginPage(), // 초기 화면을 LoginPage로 설정
+        '/': (context) => const LoginPage(),
         '/login': (context) => const LoginPage(),
         '/join': (context) => const JoinPage(),
         '/home': (context) => const HomePage(),
@@ -74,7 +80,7 @@ class MyApp extends StatelessWidget {
         '/ar': (context) => const ArPage(),
         '/wishList': (context) => const WishListPage(),
         '/product': (context) => const ProductPage(),
-        '/product/view': (context) => const ProductViewPage(productId: '',),
+        '/product/view': (context) => const ProductViewPage(productId: ''),
         '/recipe': (context) => const RecipePage(),
         '/recipe/view': (context) {
           final args = ModalRoute.of(context)!.settings.arguments as String;

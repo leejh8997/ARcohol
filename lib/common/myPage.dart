@@ -13,6 +13,7 @@ import 'wishList.dart';
 import 'myRecipe.dart';
 import '../page/recipe.dart';
 import '../page/recipeView.dart';
+import '../page/privacy_policy_page.dart'; // ✅ 개인정보 처리방침 페이지
 
 class MyPage extends StatefulWidget {
   const MyPage({super.key});
@@ -26,9 +27,18 @@ class _MyPageState extends State<MyPage> {
   String? userName;
 
   final recentRecipes = [
-    {'imgUrl': 'https://masileng-bucket.s3.ap-northeast-2.amazonaws.com/TB_COCK_MASTER/07.%EB%B8%94%EB%A3%A8%ED%95%98%EC%99%80%EC%9D%B4.jpg', 'id': 'r1'},
-    {'imgUrl': 'https://img.daily.co.kr/@files/www.daily.co.kr/content/food/2017/20170829/994eb0ffd02773ad0fed1d3a3fa09612.png', 'id': 'r2'},
-    {'imgUrl': 'https://www.hakushika.co.jp/kr/enjoy/images/sp_img01_autumn_moon.jpg', 'id': 'r3'},
+    {
+      'imgUrl': 'https://masileng-bucket.s3.ap-northeast-2.amazonaws.com/TB_COCK_MASTER/07.%EB%B8%94%EB%A3%A8%ED%95%98%EC%99%80%EC%9D%B4.jpg',
+      'id': 'r1'
+    },
+    {
+      'imgUrl': 'https://img.daily.co.kr/@files/www.daily.co.kr/content/food/2017/20170829/994eb0ffd02773ad0fed1d3a3fa09612.png',
+      'id': 'r2'
+    },
+    {
+      'imgUrl': 'https://www.hakushika.co.jp/kr/enjoy/images/sp_img01_autumn_moon.jpg',
+      'id': 'r3'
+    },
   ];
 
   @override
@@ -101,7 +111,7 @@ class _MyPageState extends State<MyPage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => RecipeViewPage(recipeId: recipe['id']!), // 필요시 id 넘기기
+                        builder: (_) => RecipeViewPage(recipeId: recipe['id']!),
                       ),
                     );
                   },
@@ -134,54 +144,65 @@ class _MyPageState extends State<MyPage> {
     );
   }
 
-  Widget _buildIconButton(BuildContext context, IconData icon, String label, String routeName) {
+  Widget _buildTextButton(BuildContext context, String label, [String? routeName]) {
+    return TextButton(
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        alignment: Alignment.centerLeft,
+      ),
+      onPressed: () {
+        if (label == '개인정보 처리방침') {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
+          );
+        } else if (routeName != null) {
+          _navigateWithoutAnimation(context, routeName);
+        }
+      },
+      child: Text(label, style: const TextStyle(color: Color(0xFFFCD19C))),
+    );
+  }
+
+  Widget _buildIconButton(BuildContext context, IconData icon, String label, String route) {
     return Column(
       children: [
         IconButton(
-          icon: Icon(icon, color: const Color(0xFFE94E2B)),
-          onPressed: () => _navigateWithoutAnimation(context, routeName),
+          icon: Icon(icon, color: Colors.white),
+          onPressed: () => _navigateWithoutAnimation(context, route),
         ),
-        Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
+        Text(label, style: const TextStyle(color: Colors.white)),
       ],
     );
   }
 
-  Widget _buildTextButton(BuildContext context, String label, [String? routeName]) {
-    return TextButton(
-      style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), alignment: Alignment.centerLeft),
-      onPressed: routeName != null ? () => _navigateWithoutAnimation(context, routeName) : null,
-      child: Text(label, style: const TextStyle(color: Color(0xFFFCD19C))),
-    );
-  }
-}
+  void _navigateWithoutAnimation(BuildContext context, String routeName) {
+    final routeWidgets = {
+      '/home': const HomePage(),
+      '/mypage': const MyPage(),
+      '/mypage/edit': const ProfileEditPage(),
+      '/mypage/orders': const BuyProductPage(),
+      '/mypage/recipe': const MyRecipePage(),
+      '/wishList': const WishListPage(),
+      '/recipe': const RecipePage(),
+      '/ar': const ArPage(),
+      '/product': const ProductPage(),
+      '/mybar': const MyBarPage(),
+    };
 
-void _navigateWithoutAnimation(BuildContext context, String routeName) {
-  final routeWidgets = {
-    '/home': const HomePage(),
-    '/mypage': const MyPage(),
-    '/mypage/edit': const ProfileEditPage(),
-    '/mypage/orders': const BuyProductPage(),
-    '/mypage/recipe': const MyRecipePage(),
-    '/wishList': const WishListPage(),
-    '/recipe': const RecipePage(),
-    '/ar': const ArPage(),
-    '/product': const ProductPage(),
-    '/mybar': const MyBarPage(),
-  };
+    final widget = routeWidgets[routeName] ?? const HomePage();
 
-  final widget = routeWidgets[routeName] ?? const HomePage();
-
-  if ([
-    '/mypage/edit',
-    '/mypage/orders',
-    '/mybar',
-  ].contains(routeName)) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => widget));
-  } else {
-    Navigator.of(context).pushReplacement(PageRouteBuilder(
-      pageBuilder: (_, __, ___) => widget,
-      transitionDuration: Duration.zero,
-      reverseTransitionDuration: Duration.zero,
-    ));
+    if ([
+      '/mypage/edit',
+      '/mypage/orders',
+      '/mybar',
+    ].contains(routeName)) {
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => widget));
+    } else {
+      Navigator.of(context).pushReplacement(PageRouteBuilder(
+        pageBuilder: (_, __, ___) => widget,
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+      ));
+    }
   }
 }
