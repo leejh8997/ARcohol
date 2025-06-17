@@ -1,6 +1,6 @@
 
 <div align="center">
-  "https://github.com/leejh8997/ARcohol/blob/developer/assets/ARcohol4.png"
+  <img src="https://github.com/leejh8997/ARcohol/blob/developer/assets/ARcohol4.png?raw=true" width="300"/>
 </div>
 
 <div style="text-align:left;">
