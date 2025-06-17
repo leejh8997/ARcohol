@@ -176,6 +176,7 @@ void _navigateWithoutAnimation(BuildContext context, String routeName) {
   if ([
     '/mypage/edit',
     '/mypage/orders',
+    '/mypage/issue',
     '/mybar',
   ].contains(routeName)) {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => widget));
