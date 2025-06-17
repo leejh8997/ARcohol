@@ -23,12 +23,48 @@
 <div style="text-align:left;">
 <h2 tabindex="-1" class="heading-element" dir="auto">👨‍👩‍👦‍👦 팀원 구성</h2>
 <table>
-<tr><th>이름</th><th>GitHub 프로필</th></tr>
-<tr><td>이재형</td><td>https://github.com/leejh8997</td></tr>
-<tr><td>이태훈</td><td>https://github.com/latte28</td></tr>
-<tr><td>박건형</td><td>https://github.com/Taehun92</td></tr>
-<tr><td>강재석</td><td>https://github.com/chonsa29</td></tr>
+<tr><th>이름</th><th>GitHub 프로필</th><th>역할</th></tr>
+<tr><td>이재형</td><td>https://github.com/leejh8997</td><td>팀장</td></tr>
+<tr><td>박재원</td><td>https://github.com/latte28</td><td>팀원</td></tr>
+<tr><td>이태훈</td><td>https://github.com/Taehun92</td><td>팀원</td></tr>
+<tr><td>천상욱</td><td>https://github.com/chonsa29</td><td>팀원</td></tr>
 </table>
+</div>
+
+<div style="text-align:left;">
+<h2 style="border-bottom: 1px solid #d8dee4; color: #282d33;">📕 발표 PPT</h2>
+<a href="https://drive.google.com/file/d/1S54vN3MGMAPsJRxfwo8K9Y5LPi9_-tiM/view?usp=drive_link">▶ Kapture 발표 PPT</a>
+</div>
+
+<div style="text-align:left;">
+<h2 style="border-bottom: 1px solid #d8dee4; color: #282d33;">🎞 시연 영상</h2>
+<a href="https://youtu.be/nYb7iXMzafA">▶ Kapture 시연 영상</a>
+</div>
+
+<div style="text-align:left;">
+<h2 style="border-bottom: 1px solid #d8dee4; color: #282d33;">🧑‍💼 역할 분담</h2>
+<h3>😎 이재형 (팀장)</h3>
+<ul>
+<li>유저 마이페이지, 관리자 페이지(상품, 가이드, 주문, 고객 관련 관리)</li>
+<li>정보 수정 및 유효성 검사, 프로필 이미지 관리</li>
+</ul>
+
+<h3>😎 박재원</h3>
+<ul>
+<li>로그인, 회원가입, 요청 게시판, 가이드 마이페이지, 헤더/푸터</li>
+<li>이메일 인증, 중복 검사, 소셜 로그인, 모달 처리 등</li>
+</ul>
+
+<h3>😎 이태훈</h3>
+<ul>
+<li>메인 페이지, 상품 등록/수정/디자인, 관광지 보기, 장바구니 기능</li>
+<li>API 연동(기상청, 챗봇 등), 여행지 필터 추가</li>
+</ul>
+
+<h3>😎 천상욱</h3>
+<ul>
+<li>마이페이지(정보수정, 주소관리), 공지사항 관리, 사용자 인증 흐름</li>
+</ul>
 </div>
 
 <div style="text-align:left;">
