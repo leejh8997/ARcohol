@@ -249,7 +249,12 @@ class _BuyProductViewPageState extends State<BuyProductViewPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   GestureDetector(
-                    onTap: () => setState(() => isDropdownExpanded = !isDropdownExpanded),
+                    onTap: () {
+                      setState(() {
+                        isDropdownExpanded = !isDropdownExpanded;
+                        if (isDropdownExpanded) isCustomInput = false;
+                      });
+                    },
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                       decoration: BoxDecoration(
@@ -275,35 +280,33 @@ class _BuyProductViewPageState extends State<BuyProductViewPage> {
                       ),
                     ),
                   ),
-                  // ✅ 애니메이션은 사유 목록만
-                  AnimatedCrossFade(
+                  AnimatedSize(
                     duration: const Duration(milliseconds: 200),
-                    firstChild: const SizedBox.shrink(),
-                    secondChild: Column(
-                      children: cancelReasons.map((reason) {
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              selectedReason = reason;
-                              isDropdownExpanded = false;
-                              isCustomInput = reason == '직접 입력';
-                            });
-                          },
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                            alignment: Alignment.centerLeft,
-                            color: darkBg,
-                            child: Text(reason, style: const TextStyle(color: Colors.white70)),
-                          ),
-                        );
-                      }).toList(),
+                    curve: Curves.easeInOut,
+                    child: Visibility(
+                      visible: isDropdownExpanded,
+                      child: Column(
+                        children: cancelReasons.map((reason) {
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                selectedReason = reason;
+                                isDropdownExpanded = false;
+                                isCustomInput = reason == '직접 입력';
+                              });
+                            },
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                              alignment: Alignment.centerLeft,
+                              color: darkBg,
+                              child: Text(reason, style: const TextStyle(color: Colors.white70)),
+                            ),
+                          );
+                        }).toList(),
+                      ),
                     ),
-                    crossFadeState:
-                    isDropdownExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
                   ),
-
-                  // ✅ 직접 입력 텍스트 필드는 바로 보여줌
                   if (isCustomInput)
                     Padding(
                       padding: const EdgeInsets.only(top: 12),
@@ -427,7 +430,12 @@ class _BuyProductViewPageState extends State<BuyProductViewPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   GestureDetector(
-                    onTap: () => setState(() => isDropdownExpanded = !isDropdownExpanded),
+                    onTap: () {
+                      setState(() {
+                        isDropdownExpanded = !isDropdownExpanded;
+                        if (isDropdownExpanded) isCustomInput = false;
+                      });
+                    },
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                       decoration: BoxDecoration(
@@ -453,27 +461,33 @@ class _BuyProductViewPageState extends State<BuyProductViewPage> {
                       ),
                     ),
                   ),
-                  if (isDropdownExpanded)
-                    Column(
-                      children: reasons.map((reason) {
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              selectedReason = reason;
-                              isDropdownExpanded = false;
-                              isCustomInput = reason == '직접 입력';
-                            });
-                          },
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                            alignment: Alignment.centerLeft,
-                            color: darkBg,
-                            child: Text(reason, style: const TextStyle(color: Colors.white70)),
-                          ),
-                        );
-                      }).toList(),
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeInOut,
+                    child: Visibility(
+                      visible: isDropdownExpanded,
+                      child: Column(
+                        children: reasons.map((reason) {
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                selectedReason = reason;
+                                isDropdownExpanded = false;
+                                isCustomInput = reason == '직접 입력';
+                              });
+                            },
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                              alignment: Alignment.centerLeft,
+                              color: darkBg,
+                              child: Text(reason, style: const TextStyle(color: Colors.white70)),
+                            ),
+                          );
+                        }).toList(),
+                      ),
                     ),
+                  ),
                   if (isCustomInput)
                     Padding(
                       padding: const EdgeInsets.only(top: 12),
@@ -502,7 +516,9 @@ class _BuyProductViewPageState extends State<BuyProductViewPage> {
                     foregroundColor: primaryColor,
                   ),
                   onPressed: () async {
-                    final reason = isCustomInput ? customReasonController.text.trim() : selectedReason;
+                    final reason = isCustomInput
+                        ? customReasonController.text.trim()
+                        : selectedReason;
                     if (reason.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('반품 사유를 선택하거나 입력해주세요')),
@@ -531,7 +547,9 @@ class _BuyProductViewPageState extends State<BuyProductViewPage> {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
                   onPressed: () async {
-                    final reason = isCustomInput ? customReasonController.text.trim() : selectedReason;
+                    final reason = isCustomInput
+                        ? customReasonController.text.trim()
+                        : selectedReason;
                     if (reason.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('교환 사유를 선택하거나 입력해주세요')),

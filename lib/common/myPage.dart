@@ -11,6 +11,7 @@ import 'profileEdit.dart';
 import 'buyProduct.dart';
 import 'wishList.dart';
 import 'myRecipe.dart';
+import 'orderIssueLog.dart';
 import '../page/recipe.dart';
 import '../page/recipeView.dart';
 
@@ -124,7 +125,7 @@ class _MyPageState extends State<MyPage> {
           const Divider(color: Colors.grey),
           _buildTextButton(context, '주문 내역', '/mypage/orders'),
           const Divider(color: Colors.grey),
-          _buildTextButton(context, '취소 · 반품 · 교환 내역'),
+          _buildTextButton(context, '취소 · 반품 · 교환 내역', '/mypage/issue'),
           const Divider(color: Colors.grey),
           _buildTextButton(context, '고객센터'),
           const Divider(color: Colors.grey),
@@ -162,6 +163,7 @@ void _navigateWithoutAnimation(BuildContext context, String routeName) {
     '/mypage/edit': const ProfileEditPage(),
     '/mypage/orders': const BuyProductPage(),
     '/mypage/recipe': const MyRecipePage(),
+    '/mypage/issue': const OrderIssueLogPage(),
     '/wishList': const WishListPage(),
     '/recipe': const RecipePage(),
     '/ar': const ArPage(),
