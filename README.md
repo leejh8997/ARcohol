@@ -47,12 +47,12 @@
 
 <div style="text-align:left;">
 <h2 style="border-bottom: 1px solid #d8dee4; color: #282d33;">📕 발표 PPT</h2>
-<a href=":;javascript">▶ARcohol 발표 PPT</a>
+<a href=":;javascript">▶ ARcohol 발표 PPT</a>
 </div>
 
 <div style="text-align:left;">
 <h2 style="border-bottom: 1px solid #d8dee4; color: #282d33;">🎞 시연 영상</h2>
-<a href=":;javascript">▶ Kapture 시연 영상</a>
+<a href=":;javascript">▶ ARcohol 시연 영상</a>
 </div>
 
 <div style="text-align:left;">
