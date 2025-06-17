@@ -230,16 +230,6 @@ class _MyPageState extends State<MyPage> {
     );
   }
 
-
-  Widget _buildTextButton(BuildContext context, String label, [String? routeName]) {
-    return TextButton(
-      style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), alignment: Alignment.centerLeft),
-      onPressed: routeName != null ? () => _navigateWithoutAnimation(context, routeName) : null,
-      child: Text(label, style: const TextStyle(color: Color(0xFFFCD19C))),
-    );
-  }
-}
-
 void _navigateWithoutAnimation(BuildContext context, String routeName) {
   final routeWidgets = {
     '/home': const HomePage(),

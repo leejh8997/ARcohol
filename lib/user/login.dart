@@ -142,7 +142,9 @@ class _LoginPageState extends State<LoginPage> {
             'uid': newUid,
             'email': firebaseUser.email,
             'name': firebaseUser.displayName ?? '',
-            'address': '',
+            'address': '부평 스테이션타워',
+            'addressDetail': '7층',
+            'brith': '19940609',
             'loginType': 'google',
             'password': 'test1234!',
             'createdAt': Timestamp.now(),
@@ -199,8 +201,11 @@ class _LoginPageState extends State<LoginPage> {
           'uid': newUid,
           'email': email,
           'name': name,
-          'address': '',
+          'address': '부평 스테이션타워',
+          'addressDetail': '7층',
+          'brith': '19940609',
           'loginType': 'kakao',
+          'password': 'test1234!',
           'createdAt': Timestamp.now(),
         });
       }
