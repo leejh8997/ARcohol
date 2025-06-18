@@ -122,8 +122,9 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
             setState(() {
               isAdultValid = isAdult;
               isBirthValid = true;
-              birthValidationMessage =
-              isAdult ? '성인입니다' : '만 19세 이상만 가입할 수 있습니다';
+              birthValidationMessage = isAdult
+                  ? '성인입니다'
+                  : '만 19세 이상만 가입할 수 있습니다';
             });
           }
         } catch (_) {
@@ -216,22 +217,24 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
     );
     print("리턴 Result값 확인 ==> $result");
     if (result != null) {
-      print("✅ result['success'] 타입: ${result['success'].runtimeType}, 값: ${result['success']}");
+      print(
+        "✅ result['success'] 타입: ${result['success'].runtimeType}, 값: ${result['success']}",
+      );
     } else {
       print("❌ result is null");
     }
 
     if (result == null || result['success'] != 'true') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('본인인증 실패')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('본인인증 실패')));
       return;
     }
     setState(() => isCertified = true);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('본인인증 성공')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('본인인증 성공')));
   }
 
   Future<void> checkEmailDuplicate() async {
@@ -345,9 +348,9 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (!isCertified) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('본인인증을 완료해주세요')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('본인인증을 완료해주세요')));
       return;
     }
     if (checkedList.contains(false)) {
@@ -695,9 +698,7 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
                   border: OutlineInputBorder(),
                 ),
                 validator: validateBirth,
-                inputFormatters: [
-                  LengthLimitingTextInputFormatter(8),
-                ],
+                inputFormatters: [LengthLimitingTextInputFormatter(8)],
               ),
               if (birthValidationMessage.isNotEmpty)
                 Align(
@@ -707,7 +708,9 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
                     child: Text(
                       birthValidationMessage,
                       style: TextStyle(
-                        color: isAdultValid ? Colors.lightGreenAccent : Colors.redAccent,
+                        color: isAdultValid
+                            ? Colors.lightGreenAccent
+                            : Colors.redAccent,
                         fontSize: 13,
                       ),
                     ),
@@ -744,14 +747,21 @@ ARcohol은 서비스 제공을 위해 아래와 같은 제3자에게 정보를 �
               ),
               const SizedBox(height: 14),
               ElevatedButton.icon(
-                onPressed: isCertified ? null : startCertification,
+                onPressed: (isCertified || !isAdultValid)
+                    ? null
+                    : startCertification,
                 icon: const Icon(Icons.verified_user),
                 label: Text(
-                  isCertified ? '본인인증 완료' : '본인인증 하기',
+                  isCertified ? '본인인증 완료'
+                      : isAdultValid ? '본인인증 하기' : '성인만 인증 가능',
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isCertified ? Colors.grey : orange,
+                  backgroundColor: isCertified
+                      ? Colors.grey
+                      : isAdultValid
+                      ? orange
+                      : Colors.grey.shade700,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
