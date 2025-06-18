@@ -27,14 +27,14 @@ class _SuggestRecipeState extends State<SuggestRecipe> {
     if (_uid.isEmpty) return;
 
     try {
-      // 1. 사용자 보유 재료 이름 가져오기
+      // 1. 내 재료 목록 가져오기
       final inventorySnapshot = await _firestore
           .collection('users')
           .doc(_uid)
           .collection('inventory')
           .get();
 
-      final ownedIngredientNames = inventorySnapshot.docs
+      final ownedNames = inventorySnapshot.docs
           .map((doc) => doc['name'] as String)
           .toList();
 
@@ -44,19 +44,21 @@ class _SuggestRecipeState extends State<SuggestRecipe> {
       List<Map<String, dynamic>> exact = [];
       List<Map<String, dynamic>> partial = [];
 
-      for (var doc in recipeSnapshot.docs) {
+      for (final doc in recipeSnapshot.docs) {
         final data = doc.data();
         final ingredients = List<Map<String, dynamic>>.from(data['ingredients'] ?? []);
-        final ingredientNames = ingredients.map((i) => i['name'] as String).toList();
+        final recipeNames = ingredients.map((i) => i['name'] as String).toList();
 
-        final missing = ingredientNames
-            .where((name) => !ownedIngredientNames.contains(name))
+        final missingList = recipeNames
+            .where((name) => !ownedNames.contains(name))
             .toList();
+        final missingCount = missingList.length;
 
-        if (missing.isEmpty) {
+        if (missingCount == 0) {
           exact.add({...data, 'id': doc.id});
-        } else if (missing.length <= 2) {
-          partial.add({...data, 'id': doc.id, 'missing': missing});
+        } else if (missingCount > 0 &&
+            ownedNames.any((name) => recipeNames.contains(name))) {
+          partial.add({...data, 'id': doc.id, 'missing': missingList});
         }
       }
 
@@ -66,7 +68,7 @@ class _SuggestRecipeState extends State<SuggestRecipe> {
         _isLoading = false;
       });
     } catch (e) {
-      debugPrint("추천 레시피 불러오기 오류: $e");
+      debugPrint("🔥 추천 레시피 오류: $e");
       setState(() => _isLoading = false);
     }
   }
@@ -85,43 +87,63 @@ class _SuggestRecipeState extends State<SuggestRecipe> {
             ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 12),
               leading: recipe['c_imgUrl'] != null
-                  ? Image.network(recipe['c_imgUrl'], width: 60, height: 60, fit: BoxFit.cover)
+                  ? ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  recipe['c_imgUrl'],
+                  width: 60,
+                  height: 60,
+                  fit: BoxFit.cover,
+                ),
+              )
                   : const SizedBox(width: 60, height: 60),
               title: Text(
                 recipe['cockName_ko'] ?? '',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold),
               ),
               subtitle: Text(
                 recipe['cockName'] ?? '',
                 style: const TextStyle(color: Colors.grey),
               ),
               trailing: showMissing && missingList.isNotEmpty
-                  ? Text("+${missingList.length}개", style: const TextStyle(color: Colors.orangeAccent))
+                  ? Text("+${missingList.length}개",
+                  style: const TextStyle(color: Colors.orangeAccent))
                   : null,
               onTap: () {
-                Navigator.pushNamed(context, '/recipe/view', arguments: recipe['id']);
+                Navigator.pushNamed(context, '/recipe/view',
+                    arguments: recipe['id']);
               },
             ),
             if (showMissing && missingList.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: missingList.map((name) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.orangeAccent),
-                      ),
-                      child: Text(
-                        name,
-                        style: const TextStyle(color: Colors.orangeAccent, fontSize: 13),
-                      ),
-                    );
-                  }).toList(),
+                padding: const EdgeInsets.only(
+                    left: 12, right: 12, bottom: 12, top: 4),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Wrap(
+                    alignment: WrapAlignment.start,
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: missingList.map((name) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[800],
+                          border: Border.all(color: Colors.grey[600]!),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          name,
+                          style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500),
+                        ),
+                      );
+                    }).toList(),
+                  ),
                 ),
               ),
           ],
@@ -141,7 +163,8 @@ class _SuggestRecipeState extends State<SuggestRecipe> {
       children: [
         const Text(
           "🍸 지금 만들 수 있는 레시피",
-          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         if (_exactMatches.isEmpty)
@@ -151,7 +174,8 @@ class _SuggestRecipeState extends State<SuggestRecipe> {
         const SizedBox(height: 24),
         const Text(
           "🧂 재료만 더 있으면 만들 수 있는 레시피",
-          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         if (_partialMatches.isEmpty)
