@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'appBar.dart';
-import 'bottomBar.dart';
+import 'myRecipeAdd.dart';
+import 'myRecipeList.dart';
+
 
 class MyRecipePage extends StatefulWidget {
   const MyRecipePage({super.key});
@@ -10,28 +11,55 @@ class MyRecipePage extends StatefulWidget {
 }
 
 class _MyRecipePageState extends State<MyRecipePage> {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  int _currentIndex = 0;
+  int selectedIndex = 0;
+
+  final List<Widget> tabs = [
+    MyRecipeAddPage(),
+    MyRecipeListPage(), // 구현되어 있어야 함
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      key: _scaffoldKey,
-      appBar: CustomAppBar(scaffoldKey: _scaffoldKey),
-      drawer: const CustomDrawer(),
-      bottomNavigationBar: CustomBottomBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+      backgroundColor: const Color(0xFF1F1F1F),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1F1F1F),
+        foregroundColor: Colors.white,
+        title: const Text('마이레시피'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
-      backgroundColor: Color(0xFF1F1F1F),
-      body: Center(
+      body: Column(
+        children: [
+          // 상단 탭
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _tabButton('등록', 0),
+              _tabButton('목록', 1),
+            ],
+          ),
+          Expanded(child: tabs[selectedIndex]),
+        ],
+      ),
+    );
+  }
+
+  Widget _tabButton(String label, int index) {
+    final isSelected = selectedIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => selectedIndex = index),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Text(
-          'MyRecipe 페이지 입니다.',
-          style: TextStyle(color: Colors.white),
+          label,
+          style: TextStyle(
+            color: isSelected ? Color(0xFFE94E2B) : Color(0xFFBEB08B),
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
         ),
       ),
     );

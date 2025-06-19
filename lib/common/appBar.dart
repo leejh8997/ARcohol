@@ -152,7 +152,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
           const Divider(color: Colors.grey),
           _buildDrawerItem(context, Icons.person, '마이페이지', '/mypage'),
           _buildDrawerItem(context, Icons.qr_code, 'AR제조법', '/ar'),
-          _buildDrawerItem(context, Icons.shopping_cart, '장바구니', '/product'),
+          _buildDrawerItem(context, Icons.shopping_cart, '장바구니', '/wishList'),
           _buildDrawerItem(context, Icons.sell, '판매', '/product'),
           _buildDrawerItem(context, Icons.book, '레시피', '/recipe'),
           _buildDrawerItem(context, Icons.local_bar, '마이바', '/mybar'),
