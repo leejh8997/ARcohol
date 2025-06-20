@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../common/appBar.dart';
 import '../common/bottomBar.dart';
-import '../recipe/recipeAllTab.dart';
-import '../recipe/recipeLikedTab.dart';
 
 class RecipePage extends StatefulWidget {
   const RecipePage({super.key});
@@ -73,8 +71,6 @@ class _RecipePageState extends State<RecipePage> with TickerProviderStateMixin {
             child: TabBarView(
               controller: _tabController,
               children: const [
-                RecipeAllTab(),
-                RecipeLikedTab(),
               ],
             ),
           ),
