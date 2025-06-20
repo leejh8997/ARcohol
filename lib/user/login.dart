@@ -4,6 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
+import 'package:flutter_naver_login/flutter_naver_login.dart';
 
 import 'join.dart';
 import '/page/home.dart';
@@ -142,7 +143,9 @@ class _LoginPageState extends State<LoginPage> {
             'uid': newUid,
             'email': firebaseUser.email,
             'name': firebaseUser.displayName ?? '',
-            'address': '',
+            'address': '부평 스테이션타워',
+            'addressDetail': '7층',
+            'brith': '19940609',
             'loginType': 'google',
             'password': 'test1234!',
             'createdAt': Timestamp.now(),
@@ -172,15 +175,9 @@ class _LoginPageState extends State<LoginPage> {
           : await UserApi.instance.loginWithKakaoAccount();
 
       final user = await UserApi.instance.me();
-      final email = user.kakaoAccount?.email ?? '';
-      final name = user.kakaoAccount?.profile?.nickname ?? '';
-
-      if (email.isEmpty) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('카카오 계정에 이메일이 없습니다.')));
-        return;
-      }
+      String email =
+          user.kakaoAccount?.email ?? 'kakao_${user.id}@placeholder.com';
+      String name = user.kakaoAccount?.profile?.nickname ?? 'ARcohol 관리자';
 
       final firestore = FirebaseFirestore.instance;
       final existCheck = await firestore
@@ -206,8 +203,11 @@ class _LoginPageState extends State<LoginPage> {
           'uid': newUid,
           'email': email,
           'name': name,
-          'address': '',
+          'address': '부평 스테이션타워',
+          'addressDetail': '7층',
+          'brith': '19940609',
           'loginType': 'kakao',
+          'password': 'test1234!',
           'createdAt': Timestamp.now(),
         });
       }
@@ -226,22 +226,107 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  Widget _buildSocialButton(
-    Color color,
-    String text,
-    IconData icon,
-    VoidCallback onPressed,
-  ) {
-    return ElevatedButton.icon(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.black,
-        minimumSize: const Size(double.infinity, 48),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+  Future<void> _signInWithNaver() async {
+    try {
+      final result = await FlutterNaverLogin.logIn();
+
+      if (result.status == 'loggedIn') {
+        final account = result.account;
+
+        final email = account?.email ?? 'naver_${account?.id}@placeholder.com';
+        final name = account?.name ?? account?.nickname ?? '네이버 사용자';
+
+        final firestore = FirebaseFirestore.instance;
+
+        final existCheck = await firestore
+            .collection('users')
+            .where('email', isEqualTo: email)
+            .get();
+
+        if (existCheck.docs.isEmpty) {
+          final snapshot = await firestore
+              .collection('users')
+              .orderBy('uid', descending: true)
+              .limit(1)
+              .get();
+
+          String newUid = 'user1';
+          if (snapshot.docs.isNotEmpty) {
+            final lastUid = snapshot.docs.first['uid'];
+            final number = int.tryParse(lastUid.replaceAll('user', '')) ?? 0;
+            newUid = 'user${number + 1}';
+          }
+
+          await firestore
+              .collection('users')
+              .doc(account?.id ?? email)
+              .set({
+            'uid': newUid,
+            'email': email,
+            'name': name,
+            'address': '부평 스테이션타워',
+            'addressDetail': '7층',
+            'brith': '19940609',
+            'loginType': 'naver',
+            'password': 'test1234!',
+            'createdAt': Timestamp.now(),
+          });
+        }
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('auto_login', _autoLogin);
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomePage()),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('네이버 로그인 실패: ${result.errorMessage}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('네이버 로그인 중 에러 발생: $e')),
+      );
+    }
+  }
+
+
+  Widget buildSocialLoginButton({
+    required String assetPath,
+    required String text,
+    required Color backgroundColor,
+    required Color textColor,
+    required VoidCallback onTap,
+    Color? borderColor,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 48,
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(8),
+          border: borderColor != null ? Border.all(color: borderColor) : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(assetPath, width: 24, height: 24),
+            const SizedBox(width: 12),
+            Text(
+              text,
+              style: TextStyle(
+                color: textColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
       ),
-      icon: Icon(icon, color: Colors.black),
-      label: Text(text, style: const TextStyle(fontWeight: FontWeight.bold)),
     );
   }
 
@@ -257,7 +342,7 @@ class _LoginPageState extends State<LoginPage> {
             children: [
               Image.asset(
                 'assets/ARcohol4.png',
-                height: 300, // 필요에 따라 조절 가능
+                height: 250, // 필요에 따라 조절 가능
               ),
               TextField(
                 controller: _emailController,
@@ -374,27 +459,62 @@ class _LoginPageState extends State<LoginPage> {
                   Expanded(child: Divider(color: Colors.white24, thickness: 1)),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
               GestureDetector(
                 onTap: _signInWithGoogle,
-                child: Image.asset(
-                  'assets/google_logo.png',
-                  width: double.infinity,
+                child: Container(
                   height: 48,
-                  fit: BoxFit.contain,
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.asset(
+                      'assets/google_login.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
-              // Kakao 로그인
               GestureDetector(
                 onTap: _signInWithKakao,
-                child: Image.asset(
-                  'assets/kakao_login.png',
-                  width: double.infinity,
+                child: Container(
                   height: 48,
-                  fit: BoxFit.contain,
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.asset(
+                      'assets/kakao_login.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
               ),
+              // GestureDetector(
+              //   onTap: _signInWithNaver,
+              //   child: Container(
+              //     height: 48,
+              //     width: double.infinity,
+              //     margin: const EdgeInsets.only(bottom: 12),
+              //     decoration: BoxDecoration(
+              //       borderRadius: BorderRadius.circular(8),
+              //     ),
+              //     child: ClipRRect(
+              //       borderRadius: BorderRadius.circular(8),
+              //       child: Image.asset(
+              //         'assets/naver_login.png',
+              //         fit: BoxFit.cover,
+              //       ),
+              //     ),
+              //   ),
+              // ),
             ],
           ),
         ),
