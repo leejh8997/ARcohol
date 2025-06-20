@@ -80,13 +80,14 @@ class _ProductPageState extends State<ProductPage> {
       itemCount: productList.length,
       separatorBuilder: (_, __) => const Divider(color: Colors.grey),
       itemBuilder: (context, index) {
+        final doc = productList[index];
         final data = productList[index].data() as Map<String, dynamic>;
         return ListTile(
           onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => ProductViewPage(productId: data['productId']),
+                builder: (_) => ProductViewPage(productId: doc.id),
               ),
             );
           },
@@ -108,13 +109,14 @@ class _ProductPageState extends State<ProductPage> {
         childAspectRatio: 3 / 4,
       ),
       itemBuilder: (context, index) {
+        final doc = productList[index];
         final data = productList[index].data() as Map<String, dynamic>;
         return GestureDetector(
           onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => ProductViewPage(productId: data['productId']),
+                builder: (_) => ProductViewPage(productId: doc.id),
               ),
             );
           },

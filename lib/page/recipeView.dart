@@ -15,6 +15,7 @@ class _RecipeViewPageState extends State<RecipeViewPage> {
   bool isLoading = true;
   Map<String, dynamic>? recipe;
   bool isLiked = false;
+  bool _didLikeChange = false; // ✅ 여기에 선언해야 함 (State 클래스 내부)
 
   @override
   void initState() {
@@ -23,12 +24,12 @@ class _RecipeViewPageState extends State<RecipeViewPage> {
   }
 
   Future<void> _fetchRecipe() async {
-    final doc = await FirebaseFirestore.instance.collection("recipes").doc(widget.recipeId).get();
+    final doc = await FirebaseFirestore.instance.collection("recipe").doc(widget.recipeId).get();
 
     if (doc.exists) {
       final data = doc.data()!;
       final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-      final likedList = List<String>.from(data['liked'] ?? []);
+      final likedList = List<String>.from(data['likes'] ?? []);
       setState(() {
         recipe = data;
         isLiked = likedList.contains(uid);
@@ -41,10 +42,10 @@ class _RecipeViewPageState extends State<RecipeViewPage> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null || recipe == null) return;
 
-    final recipeRef = FirebaseFirestore.instance.collection("recipes").doc(widget.recipeId);
+    final recipeRef = FirebaseFirestore.instance.collection("recipe").doc(widget.recipeId);
     final userRef = FirebaseFirestore.instance.collection("users").doc(uid);
 
-    List<String> likedList = List<String>.from(recipe!['liked'] ?? []);
+    List<String> likedList = List<String>.from(recipe!['likes'] ?? []);
     List<String> userLikes = [];
 
     final userDoc = await userRef.get();
@@ -61,12 +62,13 @@ class _RecipeViewPageState extends State<RecipeViewPage> {
     }
 
     await Future.wait([
-      recipeRef.update({'liked': likedList}),
+      recipeRef.update({'likes': likedList}),
       userRef.update({'likes': userLikes}),
     ]);
 
     setState(() {
       isLiked = !isLiked;
+      _didLikeChange = true; // ✅ 변경 표시
     });
   }
 
@@ -79,92 +81,98 @@ class _RecipeViewPageState extends State<RecipeViewPage> {
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("레시피 상세"),
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-      ),
-      backgroundColor: const Color(0xFF1F1F1F),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 이미지
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.network(
-                recipe!['imgUrl'] ?? '',
-                width: double.infinity,
-                height: 220,
-                fit: BoxFit.cover,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // 칵테일 이름 + 좋아요
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    "${recipe!['cocktailName_ko'] ?? ''} (${recipe!['cocktailName'] ?? ''})",
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.pop(context, _didLikeChange); // ✅ 좋아요 변경 여부 전달
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text("레시피 상세"),
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+        ),
+        backgroundColor: const Color(0xFF1F1F1F),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 이미지
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.network(
+                  recipe!['c_imgUrl'] ?? '',
+                  width: double.infinity,
+                  height: 220,
+                  fit: BoxFit.cover,
                 ),
-                IconButton(
-                  icon: Icon(
-                    isLiked ? Icons.favorite : Icons.favorite_border,
-                    color: isLiked ? Colors.redAccent : Colors.grey,
-                  ),
-                  onPressed: _toggleLike,
-                )
-              ],
-            ),
-            const SizedBox(height: 8),
+              ),
+              const SizedBox(height: 16),
 
-            // 작성자
-            if ((recipe!['writer'] ?? '').isNotEmpty)
+              // 칵테일 이름 + 좋아요
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      "${recipe!['cockName_ko'] ?? ''} (${recipe!['cockName'] ?? ''})",
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      isLiked ? Icons.favorite : Icons.favorite_border,
+                      color: isLiked ? Colors.redAccent : Colors.grey,
+                    ),
+                    onPressed: _toggleLike,
+                  )
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              // 작성자
+              if ((recipe!['writer'] ?? '').isNotEmpty)
+                Text(
+                  "by ${recipe!['writer']}",
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+
+              const SizedBox(height: 16),
+
+              // 설명
               Text(
-                "by ${recipe!['writer']}",
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
+                recipe!['description'] ?? '',
+                style: const TextStyle(color: Colors.white70, fontSize: 15),
               ),
 
-            const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
-            // 설명
-            Text(
-              recipe!['description'] ?? '',
-              style: const TextStyle(color: Colors.white70, fontSize: 15),
-            ),
+              // 재료
+              const Text("재료", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+              const SizedBox(height: 8),
+              ...List<Widget>.from((recipe!['ingredients'] as List).map((ing) {
+                final Map<String, dynamic> i = Map<String, dynamic>.from(ing);
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Text(
+                    "- ${i['name']} : ${i['amount']}",
+                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                );
+              })),
 
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            // 재료
-            const Text("재료", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-            const SizedBox(height: 8),
-            ...List<Widget>.from((recipe!['ingredients'] as List).map((ing) {
-              final Map<String, dynamic> i = Map<String, dynamic>.from(ing);
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Text(
-                  "- ${i['name']} : ${i['amount']}",
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
-                ),
-              );
-            })),
-
-            const SizedBox(height: 24),
-
-            // 제조 방법
-            const Text("제조 방법", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-            const SizedBox(height: 8),
-            Text(
-              recipe!['instructions'] ?? '',
-              style: const TextStyle(color: Colors.white70, fontSize: 15),
-            ),
-          ],
+              // 제조 방법
+              const Text("제조 방법", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+              const SizedBox(height: 8),
+              Text(
+                recipe!['instructions'] ?? '',
+                style: const TextStyle(color: Colors.white70, fontSize: 15),
+              ),
+            ],
+          ),
         ),
       ),
     );
