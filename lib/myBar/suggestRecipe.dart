@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_ai/firebase_ai.dart';
 
 class SuggestRecipe extends StatefulWidget {
   const SuggestRecipe({super.key});
@@ -15,7 +16,10 @@ class _SuggestRecipeState extends State<SuggestRecipe> {
 
   List<Map<String, dynamic>> _exactMatches = [];
   List<Map<String, dynamic>> _partialMatches = [];
+  String? _aiRecommendation;
   bool _isLoading = true;
+  bool _showAll = false;
+  bool _showAllPartial = false;
 
   @override
   void initState() {
@@ -27,7 +31,6 @@ class _SuggestRecipeState extends State<SuggestRecipe> {
     if (_uid.isEmpty) return;
 
     try {
-      // 1. 내 재료 목록 가져오기
       final inventorySnapshot = await _firestore
           .collection('users')
           .doc(_uid)
@@ -36,9 +39,8 @@ class _SuggestRecipeState extends State<SuggestRecipe> {
 
       final ownedNames = inventorySnapshot.docs
           .map((doc) => doc['name'] as String)
-          .toList();
+          .toSet();
 
-      // 2. 전체 레시피 불러오기
       final recipeSnapshot = await _firestore.collection('recipe').get();
 
       List<Map<String, dynamic>> exact = [];
@@ -47,20 +49,18 @@ class _SuggestRecipeState extends State<SuggestRecipe> {
       for (final doc in recipeSnapshot.docs) {
         final data = doc.data();
         final ingredients = List<Map<String, dynamic>>.from(data['ingredients'] ?? []);
-        final recipeNames = ingredients.map((i) => i['name'] as String).toList();
+        final recipeNames = ingredients.map((i) => i['name'] as String).toSet();
 
-        final missingList = recipeNames
-            .where((name) => !ownedNames.contains(name))
-            .toList();
-        final missingCount = missingList.length;
+        final missingList = recipeNames.difference(ownedNames).toList();
 
-        if (missingCount == 0) {
+        if (missingList.isEmpty) {
           exact.add({...data, 'id': doc.id});
-        } else if (missingCount > 0 &&
-            ownedNames.any((name) => recipeNames.contains(name))) {
+        } else if (missingList.length < recipeNames.length) {
           partial.add({...data, 'id': doc.id, 'missing': missingList});
         }
       }
+
+      await _fetchAIRecommendation(ownedNames);
 
       setState(() {
         _exactMatches = exact;
@@ -70,6 +70,26 @@ class _SuggestRecipeState extends State<SuggestRecipe> {
     } catch (e) {
       debugPrint("🔥 추천 레시피 오류: $e");
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _fetchAIRecommendation(Set<String> ownedNames) async {
+    try {
+      final model = FirebaseAI.googleAI().generativeModel(model: 'gemini-1.5-flash');
+
+      final prompt = [
+        Content.text(
+            '''내가 가진 재료는 다음과 같아: ${ownedNames.join(", ")}.
+            이 재료들을 기반으로 만들 수 있는 칵테일을 하나 추천해줘.
+            레시피 데이터에 없더라도 창의적으로 제안해도 돼.
+        가능하다면 유사한 재료로 대체 가능한 예도 설명해줘.'''
+        )
+      ];
+
+      final response = await model.generateContent(prompt);
+      _aiRecommendation = response.text ?? 'AI 응답 없음';
+    } catch (e) {
+      _aiRecommendation = 'AI 추천 실패: $e';
     }
   }
 
@@ -111,14 +131,13 @@ class _SuggestRecipeState extends State<SuggestRecipe> {
                   style: const TextStyle(color: Colors.orangeAccent))
                   : null,
               onTap: () {
-                Navigator.pushNamed(context, '/recipe/view',
-                    arguments: recipe['id']);
+                Navigator.pushNamed(context, '/recipe/view', arguments: recipe['id']);
               },
             ),
             if (showMissing && missingList.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(
-                    left: 12, right: 12, bottom: 12, top: 4),
+                padding:
+                const EdgeInsets.only(left: 12, right: 12, bottom: 12, top: 4),
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Wrap(
@@ -131,7 +150,7 @@ class _SuggestRecipeState extends State<SuggestRecipe> {
                             horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
                           color: Colors.grey[800],
-                          border: Border.all(color: Colors.grey[600]!),
+                          border: Border.all(color: Colors.grey[600]! ),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -158,6 +177,9 @@ class _SuggestRecipeState extends State<SuggestRecipe> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    final limitedExact = _showAll ? _exactMatches : _exactMatches.take(3).toList();
+    final limitedPartial = _showAllPartial ? _partialMatches : _partialMatches.take(3).toList();
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -167,9 +189,24 @@ class _SuggestRecipeState extends State<SuggestRecipe> {
               color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        if (_exactMatches.isEmpty)
+        if (limitedExact.isEmpty)
           const Text("해당 없음", style: TextStyle(color: Colors.grey)),
-        ..._exactMatches.map((r) => _buildRecipeCard(r)),
+        ...limitedExact.map((r) => _buildRecipeCard(r)),
+        if (_exactMatches.length > 3 && !_showAll)
+          GestureDetector(
+            onTap: () => setState(() => _showAll = true),
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.grey[850],
+              ),
+              child: const Center(
+                child: Text("+ 더 보기", style: TextStyle(color: Colors.lightBlueAccent)),
+              ),
+            ),
+          ),
 
         const SizedBox(height: 24),
         const Text(
@@ -178,9 +215,34 @@ class _SuggestRecipeState extends State<SuggestRecipe> {
               color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        if (_partialMatches.isEmpty)
+        if (limitedPartial.isEmpty)
           const Text("해당 없음", style: TextStyle(color: Colors.grey)),
-        ..._partialMatches.map((r) => _buildRecipeCard(r, showMissing: true)),
+        ...limitedPartial.map((r) => _buildRecipeCard(r, showMissing: true)),
+        if (_partialMatches.length > 3 && !_showAllPartial)
+          GestureDetector(
+            onTap: () => setState(() => _showAllPartial = true),
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.grey[850],
+              ),
+              child: const Center(
+                child: Text("+ 더 보기", style: TextStyle(color: Colors.lightBlueAccent)),
+              ),
+            ),
+          ),
+
+        const SizedBox(height: 24),
+        const Text(
+          "🤖 AI가 제안하는 칵테일",
+          style: TextStyle(
+              color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        if (_aiRecommendation != null)
+          Text(_aiRecommendation!, style: const TextStyle(color: Colors.white70)),
       ],
     );
   }
