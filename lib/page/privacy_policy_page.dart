@@ -1,15 +1,13 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 class PrivacyPolicyPage extends StatelessWidget {
   const PrivacyPolicyPage({super.key});
 
-  Future<Map<String, dynamic>?> getPolicyData() async {
-    final doc = await FirebaseFirestore.instance
-        .collection('privacy_policy')
-        .doc('main')
-        .get();
-    return doc.data();
+  Future<Map<String, dynamic>> loadPolicyJson() async {
+    final String jsonStr = await rootBundle.loadString('assets/privacy_policy.json');
+    return json.decode(jsonStr);
   }
 
   @override
@@ -23,8 +21,8 @@ class PrivacyPolicyPage extends StatelessWidget {
         backgroundColor: Colors.black,
         title: const Text("개인정보 처리방침"),
       ),
-      body: FutureBuilder(
-        future: getPolicyData(),
+      body: FutureBuilder<Map<String, dynamic>>(
+        future: loadPolicyJson(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
@@ -66,7 +64,6 @@ class PrivacyPolicyPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
 
-                      // ✅ 일반 항목 리스트
                       if (section.containsKey("content"))
                         ...List.generate(
                           section["content"].length,
@@ -79,7 +76,6 @@ class PrivacyPolicyPage extends StatelessWidget {
                           ),
                         ),
 
-                      // ✅ 테이블 데이터 렌더링
                       if (section.containsKey("table"))
                         Padding(
                           padding: const EdgeInsets.only(top: 12),
@@ -90,10 +86,8 @@ class PrivacyPolicyPage extends StatelessWidget {
                               1: FlexColumnWidth(3),
                             },
                             children: [
-                              // 테이블 헤더
                               TableRow(
-                                decoration:
-                                BoxDecoration(color: Colors.grey[700]),
+                                decoration: BoxDecoration(color: Colors.grey[700]),
                                 children: section["table"]["columns"]
                                     .map<Widget>((col) => Padding(
                                   padding: const EdgeInsets.all(8.0),
@@ -107,8 +101,6 @@ class PrivacyPolicyPage extends StatelessWidget {
                                 ))
                                     .toList(),
                               ),
-
-                              // 테이블 데이터
                               ...List.generate(
                                 section["table"]["rows"].length,
                                     (i) {
@@ -116,12 +108,10 @@ class PrivacyPolicyPage extends StatelessWidget {
                                   return TableRow(
                                     children: section["table"]["columns"]
                                         .map<Widget>((colName) => Padding(
-                                      padding:
-                                      const EdgeInsets.all(8.0),
+                                      padding: const EdgeInsets.all(8.0),
                                       child: Text(
                                         row[colName] ?? '',
-                                        style: const TextStyle(
-                                            color: Colors.white),
+                                        style: const TextStyle(color: Colors.white),
                                       ),
                                     ))
                                         .toList(),
@@ -131,7 +121,6 @@ class PrivacyPolicyPage extends StatelessWidget {
                             ],
                           ),
                         ),
-
                       const SizedBox(height: 24),
                     ],
                   );
