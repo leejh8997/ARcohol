@@ -82,38 +82,26 @@ class _CustomIngredientDialogState extends State<CustomIngredientDialog> {
       content: Form(
         key: _formKey,
         child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: "재료명을 입력하세요"),
-                validator: (value) =>
-                (value == null || value.trim().isEmpty) ? "재료명을 입력하세요" : null,
-              ),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(labelText: "재료 설명을 입력하세요"),
-                validator: (value) =>
-                (value == null || value.trim().isEmpty) ? "재료 설명을 입력하세요" : null,
-              ),
-              if (_isAlcoholic)
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 TextFormField(
-                  controller: _abvController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: "알콜 도수를 입력하세요"),
+                  controller: _nameController,
+                  decoration: const InputDecoration(labelText: "재료명을 입력하세요"),
+                  validator: (value) =>
+                  (value == null || value.trim().isEmpty) ? "재료명을 입력하세요" : null,
                 ),
-              Row(
-                children: [
-                  const Text("알콜 여부"),
-                  const SizedBox(width: 10),
-                  Switch(
-                    value: _isAlcoholic,
-                    onChanged: (val) => setState(() => _isAlcoholic = val),
-                  ),
-                ],
-              )
-            ],
+                SizedBox(height: 20,),
+                TextFormField(
+                  controller: _descriptionController,
+                  decoration: const InputDecoration(labelText: "재료 설명을 입력하세요"),
+                  validator: (value) =>
+                  (value == null || value.trim().isEmpty) ? "재료 설명을 입력하세요" : null,
+                ),
+              ],
+            ),
           ),
         ),
       ),

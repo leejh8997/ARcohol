@@ -13,16 +13,25 @@ class IngredientsList extends StatefulWidget {
 }
 
 class _IngredientsListState extends State<IngredientsList> with AutomaticKeepAliveClientMixin {
+  // 그룹별 카테고리
+  final Map<String, List<String>> alcoholGroups = {
+    "리큐르 & 향신료": ["리큐르", "비터스"],
+    "럼 계열": ["럼"],
+    "클리어 증류주": ["보드카", "진"],
+    "숙성 증류주": ["브랜디", "위스키"],
+    "고도 증류주": ["데킬라"],
+    "발효주": ["와인", "맥주"],
+    "전통 증류": ["증류주", "기타주류"],
+  };
+
+  final List<String> nonAlcoholGroupOrder = ["음료", "감미료", "팬트리"];
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
 
     return StreamBuilder<QuerySnapshot>(
-      key: const ValueKey("ingredients_list"), // 👈 강제 rebuild 트리거용
-      stream: FirebaseFirestore.instance
-          .collection("ingredients")
-          .orderBy("name") // 👈 쿼리 정렬 추가로 캐시 무효화 유도
-          .snapshots(),
+      stream: FirebaseFirestore.instance.collection("ingredients").snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return const Center(child: Text("오류 발생", style: TextStyle(color: Colors.red)));
@@ -32,57 +41,77 @@ class _IngredientsListState extends State<IngredientsList> with AutomaticKeepAli
         }
 
         final docs = snapshot.data!.docs;
-        final alcoholic = _groupCategories(docs, true);
-        final nonAlcoholic = _groupCategories(docs, false);
+        final List<Widget> children = [];
 
-        return ListView(
-          children: [
-            // 알콜 재료
-            ...alcoholic.map((category) => _buildCategoryTile(category, docs)),
+        // 알코올 그룹 처리
+        final alcoholGroupKeys = alcoholGroups.keys.toList();
+        for (int i = 0; i < alcoholGroupKeys.length; i++) {
+          final groupName = alcoholGroupKeys[i];
+          final categories = alcoholGroups[groupName]!;
 
-            // 구분선
-            if (nonAlcoholic.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+          // 해당 그룹에 포함된 실제 재료가 있는지 확인
+          final hasData = docs.any((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            return categories.contains(data["category"]);
+          });
+
+          if (hasData) {
+            for (final category in categories) {
+              final matchedDocs = docs.where((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                return data["category"] == category;
+              }).toList();
+
+              if (matchedDocs.isNotEmpty) {
+                children.add(_buildCategoryTile(category));
+              }
+            }
+
+            // 다음 그룹과 구분선
+            if (i != alcoholGroupKeys.length - 1) {
+              children.add(const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
                 child: Divider(color: Colors.white30, thickness: 0.5),
-              ),
+              ));
+            }
+          }
+        }
 
-            // 논알콜 재료
-            ...nonAlcoholic.map((category) => _buildCategoryTile(category, docs)),
+        // 비알콜 그룹 구분선
+        children.add(const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12),
+          child: Divider(color: Colors.white30, thickness: 0.5),
+        ));
 
-            const SizedBox(height: 8),
-            const Divider(color: Colors.white54),
-            _buildAddCustomTile(),
-          ],
-        );
+        // 비알콜 처리
+        for (final category in nonAlcoholGroupOrder) {
+          final matchedDocs = docs.where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            return data["category"] == category;
+          }).toList();
+
+          if (matchedDocs.isNotEmpty) {
+            children.add(_buildCategoryTile(category));
+          }
+        }
+
+        children.add(const SizedBox(height: 8));
+        children.add(const Divider(color: Colors.white54));
+        children.add(_buildAddCustomTile());
+
+        return ListView(children: children);
       },
     );
   }
 
-  List<String> _groupCategories(List<QueryDocumentSnapshot> docs, bool isAlcoholic) {
-    final Set<String> categories = {};
-    for (var doc in docs) {
-      final data = doc.data() as Map<String, dynamic>;
-      final category = data["category"]?.toString() ?? "기타";
-      final alcoholFlag = data["isAlcoholic"] == true;
-      if (alcoholFlag == isAlcoholic) {
-        categories.add(category);
-      }
-    }
-    final sorted = categories.toList();
-    sorted.sort();
-    return sorted;
-  }
-
-  Widget _buildCategoryTile(String category, List<QueryDocumentSnapshot> docs) {
+  Widget _buildCategoryTile(String category) {
     return IngredientTile(
       title: category,
       trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.white70),
       onTap: () async {
         await widget.navigatorKey.currentState?.push(
           PageRouteBuilder(
-            pageBuilder: (_, animation, __) =>
-                IngredientsView(category: category),
+            pageBuilder: (_, animation, __) => IngredientsView(category: category),
             transitionsBuilder: (_, animation, __, child) {
               final tween = Tween<Offset>(
                 begin: const Offset(1.0, 0.0),
@@ -93,7 +122,7 @@ class _IngredientsListState extends State<IngredientsList> with AutomaticKeepAli
           ),
         );
 
-        if (mounted) setState(() {}); // 돌아왔을 때 새로고침
+        if (mounted) setState(() {});
       },
     );
   }
@@ -107,7 +136,7 @@ class _IngredientsListState extends State<IngredientsList> with AutomaticKeepAli
           context: context,
           builder: (_) => const CustomIngredientDialog(),
         );
-        if (mounted && added == true) setState(() {}); // optional
+        if (mounted && added == true) setState(() {});
       },
     );
   }
