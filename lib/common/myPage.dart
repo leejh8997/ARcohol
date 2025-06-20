@@ -1,18 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../page/arCamera.dart';
-import '../page/home.dart';
-import '../page/myBar.dart';
-import '../page/product.dart';
+
 import 'appBar.dart';
 import 'bottomBar.dart';
 import 'profileEdit.dart';
 import 'buyProduct.dart';
 import 'wishList.dart';
 import 'myRecipe.dart';
+import 'orderIssueLog.dart';
+
+import '../page/arCamera.dart';
+import '../page/home.dart';
+import '../page/myBar.dart';
+import '../page/product.dart';
 import '../page/recipe.dart';
 import '../page/recipeView.dart';
+import '../page/privacy_policy_page.dart';
+import '../page/terms_of_service_page.dart';
+import '../page/customer_service_page.dart';
+import '../page/noticePage.dart';
+
 
 class MyPage extends StatefulWidget {
   const MyPage({super.key});
@@ -26,9 +34,21 @@ class _MyPageState extends State<MyPage> {
   String? userName;
 
   final recentRecipes = [
-    {'imgUrl': 'https://masileng-bucket.s3.ap-northeast-2.amazonaws.com/TB_COCK_MASTER/07.%EB%B8%94%EB%A3%A8%ED%95%98%EC%99%80%EC%9D%B4.jpg', 'id': 'r1'},
-    {'imgUrl': 'https://img.daily.co.kr/@files/www.daily.co.kr/content/food/2017/20170829/994eb0ffd02773ad0fed1d3a3fa09612.png', 'id': 'r2'},
-    {'imgUrl': 'https://www.hakushika.co.jp/kr/enjoy/images/sp_img01_autumn_moon.jpg', 'id': 'r3'},
+    {
+      'imgUrl':
+          'https://masileng-bucket.s3.ap-northeast-2.amazonaws.com/TB_COCK_MASTER/07.%EB%B8%94%EB%A3%A8%ED%95%98%EC%99%80%EC%9D%B4.jpg',
+      'id': 'r1',
+    },
+    {
+      'imgUrl':
+          'https://img.daily.co.kr/@files/www.daily.co.kr/content/food/2017/20170829/994eb0ffd02773ad0fed1d3a3fa09612.png',
+      'id': 'r2',
+    },
+    {
+      'imgUrl':
+          'https://www.hakushika.co.jp/kr/enjoy/images/sp_img01_autumn_moon.jpg',
+      'id': 'r3',
+    },
   ];
 
   @override
@@ -40,7 +60,10 @@ class _MyPageState extends State<MyPage> {
   Future<void> _fetchUserName() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
       if (doc.exists) {
         setState(() {
           userName = doc.data()?['name'] ?? '사용자';
@@ -65,7 +88,11 @@ class _MyPageState extends State<MyPage> {
             child: TextButton(
               onPressed: () {
                 Navigator.of(context)
-                    .push(MaterialPageRoute(builder: (_) => const ProfileEditPage()))
+                    .push(
+                      MaterialPageRoute(
+                        builder: (_) => const ProfileEditPage(),
+                      ),
+                    )
                     .then((_) => _fetchUserName());
               },
               child: Text(
@@ -78,8 +105,18 @@ class _MyPageState extends State<MyPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildIconButton(context, Icons.receipt, '주문내역', '/mypage/orders'),
-              _buildIconButton(context, Icons.shopping_cart, '장바구니', '/wishList'),
+              _buildIconButton(
+                context,
+                Icons.receipt,
+                '주문내역',
+                '/mypage/orders',
+              ),
+              _buildIconButton(
+                context,
+                Icons.shopping_cart,
+                '장바구니',
+                '/mypage/wish',
+              ),
               _buildIconButton(context, Icons.book, '마이레시피', '/mypage/recipe'),
               _buildIconButton(context, Icons.local_bar, '마이바', '/mybar'),
             ],
@@ -87,7 +124,10 @@ class _MyPageState extends State<MyPage> {
           const SizedBox(height: 16),
           const Divider(color: Colors.grey),
           const SizedBox(height: 16),
-          const Text('최근 본 상품', style: TextStyle(color: Colors.white, fontSize: 16)),
+          const Text(
+            '최근 본 상품',
+            style: TextStyle(color: Colors.white, fontSize: 16),
+          ),
           const SizedBox(height: 8),
           SizedBox(
             height: 100,
@@ -100,7 +140,9 @@ class _MyPageState extends State<MyPage> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const RecipeViewPage()),
+                      MaterialPageRoute(
+                        builder: (_) => RecipeViewPage(recipeId: recipe['id']!), // 필요시 id 넘기기
+                      ),
                     );
                   },
                   child: Container(
@@ -122,17 +164,23 @@ class _MyPageState extends State<MyPage> {
           const Divider(color: Colors.grey),
           _buildTextButton(context, '주문 내역', '/mypage/orders'),
           const Divider(color: Colors.grey),
-          _buildTextButton(context, '취소 · 반품 · 교환 내역'),
+          _buildTextButton(context, '취소 · 반품 · 교환 내역', '/mypage/issue'),
           const Divider(color: Colors.grey),
-          _buildTextButton(context, '고객센터'),
+          _buildTextButton(context, '고객센터', '/mypage/service'),
           const Divider(color: Colors.grey),
-          _buildTextButton(context, '개인정보 처리방침'),
+          _buildTextButton(context, '공지사항', '/mypage/notice'),
+          const Divider(color: Colors.grey),
+          _buildTextButton(context, '개인정보 처리방침', '/mypage/policy'),
+          const Divider(color: Colors.grey),
+          _buildTextButton(context, '서비스 이용약관', '/mypage/terms'),
+          const Divider(color: Colors.grey),
         ],
       ),
     );
   }
 
   Widget _buildIconButton(BuildContext context, IconData icon, String label, String routeName) {
+
     return Column(
       children: [
         IconButton(
@@ -159,8 +207,13 @@ void _navigateWithoutAnimation(BuildContext context, String routeName) {
     '/mypage': const MyPage(),
     '/mypage/edit': const ProfileEditPage(),
     '/mypage/orders': const BuyProductPage(),
+    '/mypage/wish': const WishListPage(),
     '/mypage/recipe': const MyRecipePage(),
-    '/wishList': const WishListPage(),
+    '/mypage/issue': const OrderIssueLogPage(),
+    '/mypage/service': const CustomerServicePage(),
+    '/mypage/notice': const NoticePage(),
+    '/mypage/policy': const PrivacyPolicyPage(),
+    '/mypage/terms': const TermsOfServicePage(),
     '/recipe': const RecipePage(),
     '/ar': const ArPage(),
     '/product': const ProductPage(),
@@ -172,6 +225,12 @@ void _navigateWithoutAnimation(BuildContext context, String routeName) {
   if ([
     '/mypage/edit',
     '/mypage/orders',
+    '/mypage/wish',
+    '/mypage/issue',
+    '/mypage/service',
+    '/mypage/notice',
+    '/mypage/policy',
+    '/mypage/terms',
     '/mybar',
   ].contains(routeName)) {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => widget));

@@ -1,1 +1,10 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"arcohol-20250609","appId":"1:675670966173:android:13fc2b130c04080382f974","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"arcohol-20250609","configurations":{"android":"1:675670966173:android:13fc2b130c04080382f974","ios":"1:675670966173:ios:a580b67c2affa8df82f974","macos":"1:675670966173:ios:a580b67c2affa8df82f974","web":"1:675670966173:web:56968ab09293661282f974","windows":"1:675670966173:web:51a095fdc3fa33d182f974"}}}}}}
+{
+  "hosting": {
+    "public": "firebase_hosting/public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}
