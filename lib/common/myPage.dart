@@ -231,6 +231,7 @@ void _navigateWithoutAnimation(BuildContext context, String routeName) {
     '/mypage/notice',
     '/mypage/policy',
     '/mypage/terms',
+    '/mypage/recipe',
     '/mybar',
   ].contains(routeName)) {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => widget));
