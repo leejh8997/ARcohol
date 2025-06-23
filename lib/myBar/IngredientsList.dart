@@ -13,7 +13,6 @@ class IngredientsList extends StatefulWidget {
 }
 
 class _IngredientsListState extends State<IngredientsList> with AutomaticKeepAliveClientMixin {
-  // 그룹별 카테고리
   final Map<String, List<String>> alcoholGroups = {
     "리큐르 & 향신료": ["리큐르", "비터스"],
     "럼 계열": ["럼"],
