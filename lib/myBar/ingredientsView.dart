@@ -7,7 +7,9 @@ import 'customIngredientDialog.dart';
 
 class IngredientsView extends StatefulWidget {
   final String category;
-  const IngredientsView({super.key, required this.category});
+  final String? focusName;
+
+  const IngredientsView({super.key, required this.category, this.focusName});
 
   @override
   State<IngredientsView> createState() => _IngredientsViewState();
@@ -15,20 +17,63 @@ class IngredientsView extends StatefulWidget {
 
 class _IngredientsViewState extends State<IngredientsView> {
   final uid = FirebaseAuth.instance.currentUser?.uid ?? "guest";
+  final ScrollController _scrollController = ScrollController();
+  final _tileHeight = 72.0; // ListTile approx height
+
+  Map<String, List<QueryDocumentSnapshot>> _grouped = {};
+  List<QueryDocumentSnapshot> _flatList = [];
+  Set<String> _inventoryIds = {};
 
   @override
-  Widget build(BuildContext context) {
-    final ingredientStream = FirebaseFirestore.instance
+  void initState() {
+    super.initState();
+    _loadIngredientsAndInventory();
+  }
+
+  Future<void> _loadIngredientsAndInventory() async {
+    final ingredientSnap = await FirebaseFirestore.instance
         .collection('ingredients')
         .where('category', isEqualTo: widget.category)
-        .snapshots();
+        .get();
 
-    final inventoryStream = FirebaseFirestore.instance
+    final inventorySnap = await FirebaseFirestore.instance
         .collection("users")
         .doc(uid)
         .collection("inventory")
-        .snapshots();
+        .get();
 
+    final inventoryIds = inventorySnap.docs.map((e) => e.id).toSet();
+    final grouped = _groupBySubcategory(ingredientSnap.docs);
+
+    // 평탄화된 리스트 (스크롤용)
+    final flat = grouped.values.expand((list) => list).toList();
+
+    setState(() {
+      _inventoryIds = inventoryIds;
+      _grouped = grouped;
+      _flatList = flat;
+    });
+
+    if (widget.focusName != null) {
+      final index = _flatList.indexWhere((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return data['name'].toString().toLowerCase() == widget.focusName!.toLowerCase();
+      });
+
+      if (index != -1) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollController.animateTo(
+            index * _tileHeight,
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeInOut,
+          );
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.category),
@@ -42,7 +87,7 @@ class _IngredientsViewState extends State<IngredientsView> {
                 builder: (_) => const CustomIngredientDialog(),
               );
               if (added == true && mounted) {
-                setState(() {}); // 리빌드
+                _loadIngredientsAndInventory(); // 새로고침
               }
             },
             icon: const Icon(Icons.add, color: Colors.white),
@@ -51,61 +96,55 @@ class _IngredientsViewState extends State<IngredientsView> {
         ],
       ),
       backgroundColor: const Color(0xFF1F1F1F),
+      body: _grouped.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+        controller: _scrollController,
+        children: _grouped.entries.expand((entry) {
+          final subcategory = entry.key;
+          final docs = entry.value;
 
-      body: StreamBuilder<List<QuerySnapshot>>(
-        stream: StreamZip([ingredientStream, inventoryStream]),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          final ingredientDocs = snapshot.data![0].docs;
-          final inventoryIds = snapshot.data![1].docs.map((e) => e.id).toSet();
-          final grouped = _groupBySubcategory(ingredientDocs);
-
-          return ListView(
-            children: grouped.entries.expand((entry) {
-              final subcategory = entry.key;
-              final docs = entry.value;
-
-              return [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
-                  child: Text(
-                    subcategory,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+          return [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+              child: Text(
+                subcategory,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
-                ...docs.map((ingredient) {
-                  final data = ingredient.data() as Map<String, dynamic>;
-                  final name = data["name"] ?? "이름 없음";
-                  final ingredientId = ingredient.id;
-                  final alreadyAdded = inventoryIds.contains(ingredientId);
+              ),
+            ),
+            ...docs.map((ingredient) {
+              final data = ingredient.data() as Map<String, dynamic>;
+              final name = data["name"] ?? "이름 없음";
+              final ingredientId = ingredient.id;
+              final alreadyAdded = _inventoryIds.contains(ingredientId);
 
-                  return IngredientTile(
-                    title: name,
-                    trailing: Icon(
-                      alreadyAdded ? Icons.check : Icons.add,
-                      color: alreadyAdded ? Colors.grey : Colors.white,
-                    ),
-                    onTap: alreadyAdded
-                        ? null
-                        : () => _addToPantry(
-                      context,
-                      uid,
-                      data,
-                      ingredientId,
-                    ),
-                  );
-                }).toList(),
-              ];
+              final isFocused = widget.focusName != null &&
+                  name.toString().toLowerCase() ==
+                      widget.focusName!.toLowerCase();
+
+              return IngredientTile(
+                title: name,
+                tileColor: isFocused ? Colors.white10 : null,
+                trailing: Icon(
+                  alreadyAdded ? Icons.check : Icons.add,
+                  color: alreadyAdded ? Colors.grey : Colors.white,
+                ),
+                onTap: alreadyAdded
+                    ? null
+                    : () => _addToPantry(
+                  context,
+                  uid,
+                  data,
+                  ingredientId,
+                ),
+              );
             }).toList(),
-          );
-        },
+          ];
+        }).toList(),
       ),
     );
   }
@@ -152,11 +191,18 @@ class _IngredientsViewState extends State<IngredientsView> {
           : "기타",
     });
 
-    // 여기서 강제 리빌드
-    if (mounted) setState(() {});
+    if (mounted) {
+      _loadIngredientsAndInventory();
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("${ingredient["name"]} 을(를) 창고에 추가했어요!")),
     );
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 }

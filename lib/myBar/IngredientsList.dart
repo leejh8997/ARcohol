@@ -13,6 +13,9 @@ class IngredientsList extends StatefulWidget {
 }
 
 class _IngredientsListState extends State<IngredientsList> with AutomaticKeepAliveClientMixin {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchText = '';
+
   final Map<String, List<String>> alcoholGroups = {
     "리큐르 & 향신료": ["리큐르", "비터스"],
     "럼 계열": ["럼"],
@@ -29,77 +32,140 @@ class _IngredientsListState extends State<IngredientsList> with AutomaticKeepAli
   Widget build(BuildContext context) {
     super.build(context);
 
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection("ingredients").snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return const Center(child: Text("오류 발생", style: TextStyle(color: Colors.red)));
-        }
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        final docs = snapshot.data!.docs;
-        final List<Widget> children = [];
-
-        // 알코올 그룹 처리
-        final alcoholGroupKeys = alcoholGroups.keys.toList();
-        for (int i = 0; i < alcoholGroupKeys.length; i++) {
-          final groupName = alcoholGroupKeys[i];
-          final categories = alcoholGroups[groupName]!;
-
-          // 해당 그룹에 포함된 실제 재료가 있는지 확인
-          final hasData = docs.any((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            return categories.contains(data["category"]);
-          });
-
-          if (hasData) {
-            for (final category in categories) {
-              final matchedDocs = docs.where((doc) {
-                final data = doc.data() as Map<String, dynamic>;
-                return data["category"] == category;
-              }).toList();
-
-              if (matchedDocs.isNotEmpty) {
-                children.add(_buildCategoryTile(category));
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: TextField(
+            controller: _searchController,
+            onChanged: (value) {
+              setState(() {
+                _searchText = value;
+              });
+            },
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: '재료 이름 검색',
+              hintStyle: const TextStyle(color: Colors.grey),
+              prefixIcon: const Icon(Icons.search, color: Colors.grey),
+              filled: true,
+              fillColor: const Color(0xFF3A3A3A),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+            ),
+          ),
+        ),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance.collection("ingredients").snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return const Center(child: Text("오류 발생", style: TextStyle(color: Colors.red)));
               }
-            }
+              if (!snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-            // 다음 그룹과 구분선
-            if (i != alcoholGroupKeys.length - 1) {
+              final docs = snapshot.data!.docs;
+
+              // 🔍 검색어가 있을 경우: name 필드만 기준으로 필터링
+              if (_searchText.isNotEmpty) {
+                final filteredDocs = docs.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final name = (data['name'] ?? '').toString().toLowerCase();
+                  return name.contains(_searchText.toLowerCase());
+                }).toList();
+
+                if (filteredDocs.isEmpty) {
+                  return const Center(
+                    child: Text('검색 결과가 없습니다.', style: TextStyle(color: Colors.white54)),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: filteredDocs.length,
+                  itemBuilder: (context, index) {
+                    final data = filteredDocs[index].data() as Map<String, dynamic>;
+                    final category = data['category'] ?? '';
+                    return IngredientTile(
+                      title: data['name'] ?? '',
+                      onTap: () async {
+                        await widget.navigatorKey.currentState?.push(
+                          MaterialPageRoute(
+                            builder: (_) => IngredientsView(
+                              category: category,
+                              focusName: data['name'], // ✅ 이름도 함께 전달
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+              }
+
+              // 🔁 기본 렌더링: 그룹별 리스트
+              final List<Widget> children = [];
+
+              final alcoholGroupKeys = alcoholGroups.keys.toList();
+              for (int i = 0; i < alcoholGroupKeys.length; i++) {
+                final groupName = alcoholGroupKeys[i];
+                final categories = alcoholGroups[groupName]!;
+
+                final hasData = docs.any((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  return categories.contains(data["category"]);
+                });
+
+                if (hasData) {
+                  for (final category in categories) {
+                    final matchedDocs = docs.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      return data["category"] == category;
+                    }).toList();
+
+                    if (matchedDocs.isNotEmpty) {
+                      children.add(_buildCategoryTile(category));
+                    }
+                  }
+
+                  if (i != alcoholGroupKeys.length - 1) {
+                    children.add(const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      child: Divider(color: Colors.white30, thickness: 0.5),
+                    ));
+                  }
+                }
+              }
+
               children.add(const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 12),
                 child: Divider(color: Colors.white30, thickness: 0.5),
               ));
-            }
-          }
-        }
 
-        // 비알콜 그룹 구분선
-        children.add(const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
-          child: Divider(color: Colors.white30, thickness: 0.5),
-        ));
+              for (final category in nonAlcoholGroupOrder) {
+                final matchedDocs = docs.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  return data["category"] == category;
+                }).toList();
 
-        // 비알콜 처리
-        for (final category in nonAlcoholGroupOrder) {
-          final matchedDocs = docs.where((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            return data["category"] == category;
-          }).toList();
+                if (matchedDocs.isNotEmpty) {
+                  children.add(_buildCategoryTile(category));
+                }
+              }
 
-          if (matchedDocs.isNotEmpty) {
-            children.add(_buildCategoryTile(category));
-          }
-        }
+              children.add(const SizedBox(height: 8));
+              children.add(const Divider(color: Colors.white54));
+              children.add(_buildAddCustomTile());
 
-        children.add(const SizedBox(height: 8));
-        children.add(const Divider(color: Colors.white54));
-        children.add(_buildAddCustomTile());
-
-        return ListView(children: children);
-      },
+              return ListView(children: children);
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -120,7 +186,6 @@ class _IngredientsListState extends State<IngredientsList> with AutomaticKeepAli
             },
           ),
         );
-
         if (mounted) setState(() {});
       },
     );
