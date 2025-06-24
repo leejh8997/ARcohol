@@ -3,6 +3,7 @@ import '../common/appBar.dart';
 import '../common/bottomBar.dart';
 import '../recipe/recipeLikedTab.dart';
 import '../recipe/recipeAllTab.dart';
+import '../recipe/customRecipe.dart';
 
 class RecipePage extends StatefulWidget {
   const RecipePage({super.key});
@@ -19,7 +20,7 @@ class _RecipePageState extends State<RecipePage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -50,6 +51,7 @@ class _RecipePageState extends State<RecipePage> with TickerProviderStateMixin {
               tabs: const [
                 Tab(text: '전체 레시피'),
                 Tab(text: '좋아요한 레시피'),
+                Tab(text: '커스텀 레시피'),
               ],
             ),
           ),
@@ -60,6 +62,7 @@ class _RecipePageState extends State<RecipePage> with TickerProviderStateMixin {
               children: const [
                 RecipeAllTab(),
                 RecipeLikedTab(),
+                CustomRecipePage(),
               ],
             ),
           ),
