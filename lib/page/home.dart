@@ -1,4 +1,5 @@
 import 'package:arcohol/page/productView.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -19,12 +20,15 @@ class _HomePageState extends State<HomePage> {
   List<DocumentSnapshot> recommendedList = [];
   List<DocumentSnapshot> popularList = [];
   List<DocumentSnapshot> productList = [];
+  List<DocumentSnapshot> _allPartialMatches = [];
 
+  bool isLoading = true;
   bool hasMoreRecommended = true;
   bool hasMorePopular = true;
   bool hasMoreProduct = true;
 
-  int totalRecommendedCount = 0;
+  int _recommendedPage = 0;
+  final int _recommendedPageSize = 5;
   int totalPopularCount = 0;
   int totalProductsCount = 0;
 
@@ -35,14 +39,16 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> fetchInitialData() async {
-    await fetchRecommendedTotalCounts();
+    await fetchRecommended(); // 내부에서 전체 필터링 처리
     await fetchPopularTotalCounts();
+    await fetchPopular();
     await fetchProductsTotalCounts();
+    await fetchProducts();
+    await fetchBanner();
 
-    fetchBanner();
-    fetchRecommended();
-    fetchPopular();
-    fetchProducts();
+    setState(() {
+      isLoading = false;
+    });
   }
 
   Future<void> fetchBanner() async {
@@ -53,27 +59,53 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  Future<void> fetchRecommendedTotalCounts() async {
-    final snap = await FirebaseFirestore.instance.collection('recipe').get();
-    totalRecommendedCount = snap.docs.length;
-  }
-
   Future<void> fetchRecommended() async {
-    // TODO: 마이바 재료 기반 필터링 로직 추가
-    Query query = FirebaseFirestore.instance
-        .collection('recipe')
-        .limit(5);
+    if (!hasMoreRecommended) return;
 
-    if (recommendedList.isNotEmpty) {
-      query = query.startAfterDocument(recommendedList.last);
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) return;
+
+    if (_allPartialMatches.isEmpty) {
+      final inventorySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('inventory')
+          .get();
+
+      final ownedNames = inventorySnapshot.docs
+          .map((doc) => doc['name'] as String)
+          .toSet();
+
+      final recipeSnapshot = await FirebaseFirestore.instance
+          .collection('recipe')
+          .get();
+
+      for (final doc in recipeSnapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final ingredients = List<Map<String, dynamic>>.from(data['ingredients'] ?? []);
+        final recipeNames = ingredients.map((i) => i['name'] as String).toSet();
+
+        final missing = recipeNames.difference(ownedNames);
+        if (missing.isNotEmpty && missing.length < recipeNames.length) {
+          _allPartialMatches.add(doc);
+        }
+      }
+
+      _allPartialMatches.shuffle(); // 랜덤 정렬
     }
 
-    final snap = await query.get();
+    // 페이징
+    final start = _recommendedPage * _recommendedPageSize;
+    final end = start + _recommendedPageSize;
+    final nextItems = _allPartialMatches.sublist(
+      start,
+      end > _allPartialMatches.length ? _allPartialMatches.length : end,
+    );
+
     setState(() {
-      recommendedList.addAll(snap.docs);
-      if (recommendedList.length >= totalRecommendedCount) {
-        hasMoreRecommended = false;
-      }
+      recommendedList.addAll(nextItems);
+      _recommendedPage++;
+      hasMoreRecommended = recommendedList.length < _allPartialMatches.length;
     });
   }
 
@@ -126,19 +158,21 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget buildCard(DocumentSnapshot doc) {
-    final name = doc.data().toString().contains('cockName') ? doc['cockName'] : doc['name'];
+    final name = doc.data().toString().contains('cockName_ko') ? doc['cockName_ko'] : doc['name'];
     final image = doc.data().toString().contains('c_imgUrl') ? doc['c_imgUrl'] : doc['imgUrl'];
 
     return GestureDetector(
       onTap: () {
-        // 판매 상품인 경우만 이동 (product 컬렉션의 문서)
         if (doc.reference.parent.id == 'product') {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (_) => ProductViewPage(productId: doc.id),
-            ),
+            MaterialPageRoute(builder: (_) => ProductViewPage(productId: doc.id)),
           );
+        } else if (doc.reference.parent.id == 'recipe') {
+          Navigator.pushNamed(context, '/recipe/view', arguments: {
+            'recipeId': doc.id,
+            'isCustom': false,
+          });
         }
       },
       child: Padding(
@@ -150,7 +184,16 @@ class _HomePageState extends State<HomePage> {
               child: Image.network(image, height: 100, width: 100, fit: BoxFit.cover),
             ),
             const SizedBox(height: 4),
-            Text(name, style: const TextStyle(color: Colors.white)),
+            SizedBox(
+              width: 100,
+              child: Text(
+                name,
+                style: const TextStyle(color: Colors.white),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
+            ),
           ],
         ),
       ),
@@ -180,9 +223,15 @@ class _HomePageState extends State<HomePage> {
                   onTap: onMore,
                   child: Container(
                     width: 100,
-                    height: 100,
-                    color: Colors.grey[800],
-                    child: const Center(child: Text('More', style: TextStyle(color: Colors.white))),
+                    height: 126,
+                    margin: const EdgeInsets.only(right: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF333333),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Center(
+                      child: Icon(Icons.add, color: Colors.white, size: 32),
+                    ),
                   ),
                 ),
             ],
@@ -194,6 +243,26 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF1F1F1F),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              CircularProgressIndicator(
+                color: Color(0xFFE94E2B),
+              ),
+              SizedBox(height: 16),
+              Text(
+                '로딩 중입니다...',
+                style: TextStyle(color: Color(0xFFE94E2B), fontSize: 16),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return Scaffold(
       key: _scaffoldKey,
       appBar: CustomAppBar(scaffoldKey: _scaffoldKey),
@@ -227,9 +296,9 @@ class _HomePageState extends State<HomePage> {
                 }).toList(),
               ),
             const SizedBox(height: 20),
-            buildSection('추천 상품', Icons.recommend, recommendedList, () => fetchRecommended(), hasMoreRecommended,),
+            buildSection('추천 레시피', Icons.recommend, recommendedList, () => fetchRecommended(), hasMoreRecommended,),
             const SizedBox(height: 20),
-            buildSection(' 인기 상품', Icons.local_fire_department, popularList, fetchPopular, hasMorePopular,),
+            buildSection(' 인기 레시피', Icons.local_fire_department, popularList, fetchPopular, hasMorePopular,),
             const SizedBox(height: 20),
             buildSection(' 판매 상품', Icons.shopping_bag, productList, fetchProducts, hasMoreProduct,),
           ],

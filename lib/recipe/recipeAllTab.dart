@@ -155,7 +155,10 @@ class _RecipeAllTabState extends State<RecipeAllTab> {
                 final result = await Navigator.pushNamed(
                   context,
                   '/recipe/view',
-                  arguments: _rawDocs[index].id,
+                  arguments: {
+                    'recipeId': _rawDocs[index].id,
+                    'isCustom': false, // 일반 레시피 탭이므로 false
+                  },
                 );
 
                 if (result == true) {

@@ -60,6 +60,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   firebase_ai: ^2.1.0
+  uuid: ^3.0.7
 
 
 dev_dependencies:

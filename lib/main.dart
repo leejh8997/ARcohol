@@ -86,7 +86,7 @@ class MyApp extends StatelessWidget {
           final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
           return RecipeViewPage(
             recipeId: args['recipeId'],
-            isCustom: args['isCustom'],
+            isCustom: args['isCustom'] ?? false,
           );
         },
         '/mybar': (context) => const MyBarPage(),
