@@ -73,6 +73,7 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
       if (item is Map && item['productId'] == widget.productId) {
         setState(() {
           isAlreadyInCart = true;
+          quantity = item['quantity'] ?? 1; // ✅ 기존 수량 반영
         });
         break;
       }
@@ -378,7 +379,13 @@ class _ProductViewPageState extends State<ProductViewPage> with SingleTickerProv
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => ProductOrderPage(product: productData!),
+                              builder: (_) => ProductOrderPage(
+                                product: {
+                                  ...productData!,
+                                  'productId': widget.productId, // ✅ 누락 방지
+                                },
+                                quantity: quantity, // ✅ 수량 전달
+                              ),
                             ),
                           );
                         },

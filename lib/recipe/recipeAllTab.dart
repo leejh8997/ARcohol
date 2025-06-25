@@ -164,6 +164,8 @@ class _RecipeAllTabState extends State<RecipeAllTab> {
                 final recipe = _filteredRecipes[index];
                 final rawIndex = _recipes.indexOf(recipe);
                 final isLiked = _likedStates[rawIndex];
+                final recipe = _recipes[index];
+                final isLiked = _likedStates[index];
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 16.0),
@@ -177,9 +179,11 @@ class _RecipeAllTabState extends State<RecipeAllTab> {
                         final result = await Navigator.pushNamed(
                           context,
                           '/recipe/view',
-                          arguments: _rawDocs[rawIndex].id,
+                          arguments: {
+                            'recipeId': _rawDocs[index].id,
+                            'isCustom': false, // 일반 레시피 탭이므로 false
+                          },
                         );
-
                         if (result == true) {
                           final doc = await _firestore.collection('recipe').doc(_rawDocs[rawIndex].id).get();
                           if (doc.exists) {
