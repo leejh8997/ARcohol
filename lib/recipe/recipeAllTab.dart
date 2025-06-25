@@ -164,8 +164,6 @@ class _RecipeAllTabState extends State<RecipeAllTab> {
                 final recipe = _filteredRecipes[index];
                 final rawIndex = _recipes.indexOf(recipe);
                 final isLiked = _likedStates[rawIndex];
-                final recipe = _recipes[index];
-                final isLiked = _likedStates[index];
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 16.0),

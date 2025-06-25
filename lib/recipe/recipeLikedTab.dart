@@ -131,13 +131,15 @@ class _RecipeLikedTabState extends State<RecipeLikedTab> {
 
               return GestureDetector(
                 onTap: () async {
-                  final result = await Navigator.pushNamed(
+                  await Navigator.pushNamed(
                     context,
                     '/recipe/view',
                     arguments: {
                       'recipeId': doc.id,
-                      'isCustom': false, // 일반 레시피
+                      'isCustom': false,
                     },
+                  );
+                },
                 child: Card(
                   color: Colors.grey[900],
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
