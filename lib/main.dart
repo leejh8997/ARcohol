@@ -83,8 +83,11 @@ class MyApp extends StatelessWidget {
         '/product/view': (context) => const ProductViewPage(productId: ''),
         '/recipe': (context) => const RecipePage(),
         '/recipe/view': (context) {
-          final recipeId = ModalRoute.of(context)!.settings.arguments as String; // ✅ 타입 일치
-          return RecipeViewPage(recipeId: recipeId);
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          return RecipeViewPage(
+            recipeId: args['recipeId'],
+            isCustom: args['isCustom'],
+          );
         },
         '/mybar': (context) => const MyBarPage(),
         '/inventory': (context) => const InventoryPage(),

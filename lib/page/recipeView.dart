@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 
 class RecipeViewPage extends StatefulWidget {
   final String recipeId;
+  final bool isCustom;
 
-  const RecipeViewPage({super.key, required this.recipeId});
+  const RecipeViewPage({super.key, required this.recipeId, required this.isCustom});
 
   @override
   State<RecipeViewPage> createState() => _RecipeViewPageState();
@@ -15,7 +16,8 @@ class _RecipeViewPageState extends State<RecipeViewPage> {
   bool isLoading = true;
   Map<String, dynamic>? recipe;
   bool isLiked = false;
-  bool _didLikeChange = false; // ✅ 여기에 선언해야 함 (State 클래스 내부)
+  bool _didLikeChange = false;
+  String? writerName;
 
   @override
   void initState() {
@@ -24,12 +26,23 @@ class _RecipeViewPageState extends State<RecipeViewPage> {
   }
 
   Future<void> _fetchRecipe() async {
-    final doc = await FirebaseFirestore.instance.collection("recipe").doc(widget.recipeId).get();
+    final doc = await FirebaseFirestore.instance
+        .collection(widget.isCustom ? "customRecipes" : "recipe")
+        .doc(widget.recipeId)
+        .get();
 
     if (doc.exists) {
       final data = doc.data()!;
       final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
       final likedList = List<String>.from(data['likes'] ?? []);
+
+      // 작성자 이름 조회
+      final writerId = data['writer'];
+      if (writerId != null && writerId.toString().isNotEmpty) {
+        final userDoc = await FirebaseFirestore.instance.collection('users').doc(writerId).get();
+        writerName = userDoc.data()?['name'] ?? '';
+      }
+
       setState(() {
         recipe = data;
         isLiked = likedList.contains(uid);
@@ -42,7 +55,10 @@ class _RecipeViewPageState extends State<RecipeViewPage> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null || recipe == null) return;
 
-    final recipeRef = FirebaseFirestore.instance.collection("recipe").doc(widget.recipeId);
+    final recipeRef = FirebaseFirestore.instance
+        .collection(widget.isCustom ? "customRecipes" : "recipe")
+        .doc(widget.recipeId);
+
     final userRef = FirebaseFirestore.instance.collection("users").doc(uid);
 
     List<String> likedList = List<String>.from(recipe!['likes'] ?? []);
@@ -68,7 +84,7 @@ class _RecipeViewPageState extends State<RecipeViewPage> {
 
     setState(() {
       isLiked = !isLiked;
-      _didLikeChange = true; // ✅ 변경 표시
+      _didLikeChange = true;
     });
   }
 
@@ -83,7 +99,7 @@ class _RecipeViewPageState extends State<RecipeViewPage> {
 
     return WillPopScope(
       onWillPop: () async {
-        Navigator.pop(context, _didLikeChange); // ✅ 좋아요 변경 여부 전달
+        Navigator.pop(context, _didLikeChange);
         return false;
       },
       child: Scaffold(
@@ -116,7 +132,9 @@ class _RecipeViewPageState extends State<RecipeViewPage> {
                 children: [
                   Expanded(
                     child: Text(
-                      "${recipe!['cockName_ko'] ?? ''} (${recipe!['cockName'] ?? ''})",
+                      widget.isCustom
+                          ? recipe!['cockName'] ?? ''
+                          : "${recipe!['cockName_ko'] ?? ''} (${recipe!['cockName'] ?? ''})",
                       style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                   ),
@@ -131,20 +149,17 @@ class _RecipeViewPageState extends State<RecipeViewPage> {
               ),
               const SizedBox(height: 8),
 
-              // 작성자
-              if ((recipe!['writer'] ?? '').isNotEmpty)
-                Text(
-                  "by ${recipe!['writer']}",
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
+              // 작성자 이름
+              if (writerName != null && writerName!.isNotEmpty)
+                Text("by $writerName", style: const TextStyle(color: Colors.grey, fontSize: 12)),
 
               const SizedBox(height: 16),
 
-              // 설명
-              Text(
-                recipe!['description'] ?? '',
-                style: const TextStyle(color: Colors.white70, fontSize: 15),
-              ),
+              // 설명 또는 메모
+              if (!widget.isCustom)
+                Text(recipe!['description'] ?? '', style: const TextStyle(color: Colors.white70, fontSize: 15)),
+              if (widget.isCustom)
+                Text(recipe!['memo'] ?? '', style: const TextStyle(color: Colors.white70, fontSize: 15)),
 
               const SizedBox(height: 24),
 

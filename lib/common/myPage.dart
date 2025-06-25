@@ -38,16 +38,19 @@ class _MyPageState extends State<MyPage> {
       'imgUrl':
           'https://masileng-bucket.s3.ap-northeast-2.amazonaws.com/TB_COCK_MASTER/07.%EB%B8%94%EB%A3%A8%ED%95%98%EC%99%80%EC%9D%B4.jpg',
       'id': 'r1',
+      'isCustom': false,
     },
     {
       'imgUrl':
           'https://img.daily.co.kr/@files/www.daily.co.kr/content/food/2017/20170829/994eb0ffd02773ad0fed1d3a3fa09612.png',
       'id': 'r2',
+      'isCustom': false,
     },
     {
       'imgUrl':
           'https://www.hakushika.co.jp/kr/enjoy/images/sp_img01_autumn_moon.jpg',
       'id': 'r3',
+      'isCustom': false,
     },
   ];
 
@@ -135,13 +138,19 @@ class _MyPageState extends State<MyPage> {
               scrollDirection: Axis.horizontal,
               itemCount: recentRecipes.length,
               itemBuilder: (context, index) {
-                final recipe = recentRecipes[index];
+                final recipe = recentRecipes[index]; // ✅ 이 위치에서 선언
+                final recipeId = recipe['id']?.toString() ?? '';
+                final bool isCustom = recipe['isCustom'] as bool? ?? false;
+                final imgUrl = recipe['imgUrl']?.toString() ?? '';
                 return GestureDetector(
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => RecipeViewPage(recipeId: recipe['id']!), // 필요시 id 넘기기
+                        builder: (_) => RecipeViewPage(
+                          recipeId: recipeId,
+                          isCustom: isCustom,
+                        ), // 필요시 id 넘기기
                       ),
                     );
                   },
@@ -151,7 +160,7 @@ class _MyPageState extends State<MyPage> {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
                       image: DecorationImage(
-                        image: NetworkImage(recipe['imgUrl']!),
+                        image: NetworkImage(imgUrl),
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -231,6 +240,7 @@ void _navigateWithoutAnimation(BuildContext context, String routeName) {
     '/mypage/notice',
     '/mypage/policy',
     '/mypage/terms',
+    '/mypage/recipe',
     '/mybar',
   ].contains(routeName)) {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => widget));

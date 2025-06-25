@@ -14,6 +14,9 @@ class _InventoryTabState extends State<InventoryTab> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   String? _expandedCategory;
 
+  final TextEditingController _searchController = TextEditingController(); // ✅
+  String _searchText = ''; // ✅
+
   Stream<List<String>> _fetchCategoriesStream(String uid) {
     return FirebaseFirestore.instance
         .collection("users")
@@ -42,30 +45,93 @@ class _InventoryTabState extends State<InventoryTab> {
 
     final uid = user.uid;
 
-    return StreamBuilder<List<String>>(
-      stream: _fetchCategoriesStream(uid),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        final categories = snapshot.data!;
-
-        return ListView(
-          key: const PageStorageKey("inventoryListView"),
-          children: [
-            ...categories.map((category) => _buildCategoryStream(uid, category)),
-            _buildCustomIngredients(uid),
-            if (categories.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 30),
-                child: Center(
-                  child: Text("창고에 추가한 재료가 없습니다", style: TextStyle(color: Colors.white70)),
-                ),
+    return Column(
+      children: [
+        // ✅ 검색창 추가
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: TextField(
+            controller: _searchController,
+            onChanged: (value) => setState(() => _searchText = value),
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: "창고 내 재료 검색",
+              hintStyle: const TextStyle(color: Colors.grey),
+              prefixIcon: const Icon(Icons.search, color: Colors.grey),
+              filled: true,
+              fillColor: const Color(0xFF3A3A3A),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
               ),
-          ],
-        );
-      },
+            ),
+          ),
+        ),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection("users")
+                .doc(uid)
+                .collection("inventory")
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final docs = snapshot.data!.docs;
+
+              // ✅ 검색 중일 때 평면 리스트 출력
+              if (_searchText.trim().isNotEmpty) {
+                final filtered = docs.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final name = (data['name'] ?? '').toString().toLowerCase();
+                  return name.contains(_searchText.toLowerCase());
+                }).toList();
+
+                if (filtered.isEmpty) {
+                  return const Center(
+                    child: Text("검색 결과가 없습니다", style: TextStyle(color: Colors.white70)),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    final doc = filtered[index];
+                    return _buildIngredientTile(doc, uid);
+                  },
+                );
+              }
+
+              // ✅ 기본 분류 출력 (카테고리/서브카테고리별)
+              return StreamBuilder<List<String>>(
+                stream: _fetchCategoriesStream(uid),
+                builder: (context, catSnap) {
+                  if (!catSnap.hasData) return const SizedBox.shrink();
+
+                  final categories = catSnap.data!;
+                  return ListView(
+                    key: const PageStorageKey("inventoryListView"),
+                    children: [
+                      ...categories.map((category) => _buildCategoryStream(uid, category)),
+                      _buildCustomIngredients(uid),
+                      if (categories.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 30),
+                          child: Center(
+                            child: Text("창고에 추가한 재료가 없습니다",
+                                style: TextStyle(color: Colors.white70)),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -199,5 +265,11 @@ class _InventoryTabState extends State<InventoryTab> {
       ),
       compact: true,
     );
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 }
