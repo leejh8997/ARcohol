@@ -131,7 +131,10 @@ class _SuggestRecipeState extends State<SuggestRecipe> {
                   style: const TextStyle(color: Colors.orangeAccent))
                   : null,
               onTap: () {
-                Navigator.pushNamed(context, '/recipe/view', arguments: recipe['id']);
+                Navigator.pushNamed(context, '/recipe/view', arguments: {
+                  'recipeId': recipe['id'],
+                  'isCustom': false, // 일반 레시피 탭이므로 false
+                },);
               },
             ),
             if (showMissing && missingList.isNotEmpty)
