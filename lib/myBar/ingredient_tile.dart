@@ -6,6 +6,7 @@ class IngredientTile extends StatelessWidget {
   final Widget? trailing;
   final VoidCallback? onTap;
   final bool compact;
+  final Color? tileColor;
 
   const IngredientTile({
     super.key,
@@ -14,6 +15,7 @@ class IngredientTile extends StatelessWidget {
     this.trailing,
     this.onTap,
     this.compact = false,
+    this.tileColor,
   });
 
   @override
@@ -26,7 +28,7 @@ class IngredientTile extends StatelessWidget {
           ? const EdgeInsets.symmetric(horizontal: 12, vertical: 2)
           : const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       decoration: BoxDecoration(
-        color: const Color(0xFF2A2A2A),
+        color: tileColor ?? const Color(0xFF2A2A2A),
         borderRadius: BorderRadius.circular(12),
       ),
       child: InkWell(
