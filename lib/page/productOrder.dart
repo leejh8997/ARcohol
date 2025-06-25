@@ -3,11 +3,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:portone_flutter/portone_flutter.dart';
 import 'package:portone_flutter/model/payment_data.dart';
-
+import 'package:uuid/uuid.dart';
+import '../user/address_search_page.dart';
+import '../common/buyProduct.dart';
 
 class ProductOrderPage extends StatefulWidget {
   final Map<String, dynamic> product;
-  const ProductOrderPage({super.key, required this.product});
+  final int quantity;
+  const ProductOrderPage({super.key, required this.product, this.quantity = 1});
 
   @override
   State<ProductOrderPage> createState() => _ProductOrderPageState();
@@ -18,6 +21,8 @@ class _ProductOrderPageState extends State<ProductOrderPage> {
   final Color darkBg = const Color(0xFF1F1F1F);
   final Color midBg = const Color(0xFF333333);
   final Color accent = const Color(0xFFBEB08B);
+  final merchantUid = 'order_${const Uuid().v4()}';
+  late int quantity;
 
   final user = FirebaseAuth.instance.currentUser;
   Map<String, dynamic>? userData;
@@ -32,11 +37,15 @@ class _ProductOrderPageState extends State<ProductOrderPage> {
   ];
   final TextEditingController customMemoController = TextEditingController();
 
-  int quantity = 1;
+  final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _addressDetailController = TextEditingController();
+
+
 
   @override
   void initState() {
     super.initState();
+    quantity = widget.quantity;
     fetchUserData();
   }
 
@@ -49,6 +58,81 @@ class _ProductOrderPageState extends State<ProductOrderPage> {
         });
       }
     }
+  }
+
+  void _searchAddress() async {
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const AddressSearchPage()),
+    );
+
+    if (!mounted) return;
+
+    if (result != null && result.isNotEmpty) {
+      setState(() {
+        _addressController.text = result;
+      });
+    } else {
+      print("❌ 주소 검색 결과가 null이거나 빈 값입니다.");
+    }
+  }
+
+  void _showAddressChangeDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: midBg,
+        title: const Text('배송지 변경', style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: TextFormField(
+                controller: _addressController,
+                readOnly: true,
+                onTap: _searchAddress,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: '주소',
+                  prefixIcon: Icon(Icons.search, color: Colors.white),
+                  filled: true,
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 7),
+            TextFormField(
+              controller: _addressDetailController,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                labelText: '상세주소 (동/호수 등)',
+                prefixIcon: Icon(Icons.location_on, color: Colors.white),
+                filled: true,
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                userData?['address'] = _addressController.text;
+                userData?['addressDetail'] = _addressDetailController.text;
+              });
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
+            child: const Text('변경'),
+          )
+        ],
+      ),
+    );
   }
 
   @override
@@ -86,7 +170,7 @@ class _ProductOrderPageState extends State<ProductOrderPage> {
                       Text(userData!['name'] ?? '',
                           style: TextStyle(color: accent, fontSize: 18, fontWeight: FontWeight.bold)),
                       TextButton(
-                        onPressed: () {}, // 변경 기능 미구현
+                        onPressed: _showAddressChangeDialog, // 변경 기능 미구현
                         child: const Text('변경', style: TextStyle(color: Colors.white)),
                         style: TextButton.styleFrom(
                           backgroundColor: Colors.grey[700],
@@ -258,7 +342,7 @@ class _ProductOrderPageState extends State<ProductOrderPage> {
                               buyerTel: userData?['phone'],
                               buyerAddr: '${userData?['address']} ${userData?['addressDetail']}',
                               buyerPostcode: '06236',
-                              merchantUid: 'test_mbyk0zlh',
+                              merchantUid: merchantUid,
                               appScheme: 'arcohol', // 주소에 따라 적절히 처리
                             ),
                             callback: (result) async {
@@ -306,7 +390,10 @@ class _ProductOrderPageState extends State<ProductOrderPage> {
                                 });
 
                                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ 주문 저장 완료!')));
-                                Navigator.pop(context);
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const BuyProductPage()),
+                                );
                               } catch (e) {
                                 print('❌ 주문 저장 실패: $e');
                                 ScaffoldMessenger.of(context)

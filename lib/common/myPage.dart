@@ -32,32 +32,31 @@ class MyPage extends StatefulWidget {
 class _MyPageState extends State<MyPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   String? userName;
-
-  final recentRecipes = [
-    {
-      'imgUrl':
-          'https://masileng-bucket.s3.ap-northeast-2.amazonaws.com/TB_COCK_MASTER/07.%EB%B8%94%EB%A3%A8%ED%95%98%EC%99%80%EC%9D%B4.jpg',
-      'id': 'r1',
-      'isCustom': false,
-    },
-    {
-      'imgUrl':
-          'https://img.daily.co.kr/@files/www.daily.co.kr/content/food/2017/20170829/994eb0ffd02773ad0fed1d3a3fa09612.png',
-      'id': 'r2',
-      'isCustom': false,
-    },
-    {
-      'imgUrl':
-          'https://www.hakushika.co.jp/kr/enjoy/images/sp_img01_autumn_moon.jpg',
-      'id': 'r3',
-      'isCustom': false,
-    },
-  ];
+  List<Map<String, dynamic>> recentRecipes = [];
+  int viewCount = 5;
 
   @override
   void initState() {
     super.initState();
     _fetchUserName();
+    _fetchRecentRecipes();
+  }
+
+  Future<void> _fetchRecentRecipes() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final data = doc.data();
+
+    if (data != null && data['recentRecipes'] != null) {
+      List<dynamic> rawList = data['recentRecipes'];
+      rawList.sort((a, b) => b['viewedAt'].compareTo(a['viewedAt'])); // 최신순 정렬
+      setState(() {
+        recentRecipes = rawList.cast<Map<String, dynamic>>();
+        viewCount = 5;
+      });
+    }
   }
 
   Future<void> _fetchUserName() async {
@@ -128,48 +127,99 @@ class _MyPageState extends State<MyPage> {
           const Divider(color: Colors.grey),
           const SizedBox(height: 16),
           const Text(
-            '최근 본 상품',
+            '최근 본 레시피',
             style: TextStyle(color: Colors.white, fontSize: 16),
           ),
           const SizedBox(height: 8),
-          SizedBox(
-            height: 100,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: recentRecipes.length,
-              itemBuilder: (context, index) {
-                final recipe = recentRecipes[index]; // ✅ 이 위치에서 선언
-                final recipeId = recipe['id']?.toString() ?? '';
-                final bool isCustom = recipe['isCustom'] as bool? ?? false;
-                final imgUrl = recipe['imgUrl']?.toString() ?? '';
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => RecipeViewPage(
-                          recipeId: recipeId,
-                          isCustom: isCustom,
-                        ), // 필요시 id 넘기기
-                      ),
-                    );
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 12),
-                    width: 80,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      image: DecorationImage(
-                        image: NetworkImage(imgUrl),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
+          if (recentRecipes.isEmpty)
+            const Text("최근 본 레시피가 없습니다.", style: TextStyle(color: Colors.grey)),
+
+          if (recentRecipes.isNotEmpty)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  height: 130,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: recentRecipes.length > viewCount
+                        ? viewCount + 1 // ➕ 카드 포함
+                        : recentRecipes.length,
+                    itemBuilder: (context, index) {
+                      // 🔹➕ 카드 위치
+                      if (index == viewCount && recentRecipes.length > viewCount) {
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              viewCount += 5;
+                            });
+                          },
+                          child: Container(
+                            width: 100,
+                            margin: const EdgeInsets.only(right: 12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF333333),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Center(
+                              child: Icon(Icons.add, color: Colors.white),
+                            ),
+                          ),
+                        );
+                      }
+
+                      // 🔹일반 레시피 카드
+                      final recipe = recentRecipes[index];
+                      final recipeId = recipe['id'];
+                      final isCustom = recipe['isCustom'] ?? false;
+                      final imgUrl = recipe['imgUrl'] ?? '';
+                      final cockNameKo = recipe['cockName_ko'] ?? '';
+
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => RecipeViewPage(
+                                recipeId: recipeId,
+                                isCustom: isCustom,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 12),
+                          width: 100,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  imgUrl,
+                                  width: 100,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                cockNameKo,
+                                style: const TextStyle(color: Colors.white, fontSize: 12),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 14),
           const Divider(color: Colors.grey),
           _buildTextButton(context, '주문 내역', '/mypage/orders'),
           const Divider(color: Colors.grey),

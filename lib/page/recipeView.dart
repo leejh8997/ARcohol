@@ -48,7 +48,42 @@ class _RecipeViewPageState extends State<RecipeViewPage> {
         isLiked = likedList.contains(uid);
         isLoading = false;
       });
+      await _saveToRecentView();
     }
+  }
+  Future<void> _saveToRecentView() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+
+    final recipeData = {
+      'id': widget.recipeId,
+      'isCustom': widget.isCustom,
+      'imgUrl': recipe?['c_imgUrl'] ?? '',
+      'cockName_ko': recipe?['cockName_ko'] ?? '',
+      'viewedAt': DateTime.now().toIso8601String(),
+    };
+
+    final doc = await userRef.get();
+    List<dynamic> currentList = doc.data()?['recentRecipes'] ?? [];
+
+    // 🔸 중복 제거 (같은 id + isCustom)
+    currentList.removeWhere((item) =>
+    item['id'] == widget.recipeId && item['isCustom'] == widget.isCustom
+    );
+
+    // 🔸 새 항목 추가
+    currentList.add(recipeData);
+
+    // 🔸 20개 초과 시 오래된 항목 제거
+    if (currentList.length > 20) {
+      currentList = currentList.sublist(currentList.length - 20); // 최근 20개만 남김
+    }
+
+    await userRef.update({
+      'recentRecipes': currentList,
+    });
   }
 
   Future<void> _toggleLike() async {
@@ -138,13 +173,14 @@ class _RecipeViewPageState extends State<RecipeViewPage> {
                       style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(
-                      isLiked ? Icons.favorite : Icons.favorite_border,
-                      color: isLiked ? Colors.redAccent : Colors.grey,
+                  if (!widget.isCustom)
+                    IconButton(
+                      icon: Icon(
+                        isLiked ? Icons.favorite : Icons.favorite_border,
+                        color: isLiked ? Colors.redAccent : Colors.grey,
+                      ),
+                      onPressed: _toggleLike,
                     ),
-                    onPressed: _toggleLike,
-                  )
                 ],
               ),
               const SizedBox(height: 8),
@@ -193,3 +229,4 @@ class _RecipeViewPageState extends State<RecipeViewPage> {
     );
   }
 }
+
