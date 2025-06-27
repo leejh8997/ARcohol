@@ -112,15 +112,64 @@
 <div style="text-align:left;">
 <h2 style="border-bottom: 1px solid #d8dee4; color: #282d33;">📄 주요 기능 및 페이지</h2>
 <ul>
-![image](https://github.com/user-attachments/assets/c6f46f2a-a1ba-4ef8-a793-00d63f6f6a2d)
-<li>회원가입/로그인: Firebase Auth 기반 핸드폰 인증 및 소셜 로그인</li>
+
+<div>
+  <img src="https://github.com/leejh8997/ARcohol/raw/master/assets/ImplementationScreen/login.jpg" width="400" height="500" />
+</div>
+<li>
+  회원가입/로그인: Firebase Auth 기반 핸드폰 인증 및 소셜 로그인
+</li>
+<br>
+<div>
+  <img src="https://github.com/leejh8997/ARcohol/raw/master/assets/ImplementationScreen/home.jpg" width="400" height="500" />
+</div>
 <li>홈: 랜덤 배너/추천 레시피/인기 레시피/상품 목록 표시 (5개 + more)</li>
-<li>마이바: 인벤토리 기반 추천 레시피 표시</li>
-<li>상품: 상세 페이지/장바구니 담기/바로 구매 가능</li>
-<li>결제: Firestore에 주문 문서 저장, 배송지 입력 및 총 결제 금액 표시</li>
-<li>주문 내역: 결제일자/상태/제품 정보 확인 및 리뷰 작성</li>
-<li>주문 취소/교환: 상태에 따른 분기 처리 및 사유 입력</li>
+<br>
+<div>
+  <img src="https://github.com/leejh8997/ARcohol/raw/master/assets/ImplementationScreen/VR.jpg" width="400" height="500" />
+</div>
 <li>AR 기능: 카메라 기반 재료 비율 시각화</li>
+<br>
+<div>
+  <img src="https://github.com/leejh8997/ARcohol/raw/master/assets/ImplementationScreen/recipe_list.jpg" width="400" height="500" />
+</div>
+<li>레시피: 전체, 좋아요, 커스텀 레시피 표시</li>
+<br>
+<div>
+  <img src="https://github.com/leejh8997/ARcohol/raw/master/assets/ImplementationScreen/mybar_recommend.jpg" width="400" height="500" />
+</div>
+<li>마이바: 인벤토리 기반 추천 레시피 표시</li>
+<br>
+<div>
+  <img src="https://github.com/leejh8997/ARcohol/raw/master/assets/ImplementationScreen/product_detail.jpg" width="400" height="500" />
+</div>
+<li>상품: 상세 페이지/장바구니 담기/바로 구매 가능</li>
+<br>
+<div>
+  <img src="https://github.com/leejh8997/ARcohol/raw/master/assets/ImplementationScreen/payment.jpg" width="400" height="500" />
+</div>
+<li>결제: Firestore에 주문 정보 저장, 배송지 입력 및 총 결제 금액 표시</li>
+<br>
+<div>
+  <img src="https://github.com/leejh8997/ARcohol/raw/master/assets/ImplementationScreen/order_detail.jpg" width="400" height="500" />
+</div>
+<li>주문 내역: 결제일자/상태/제품 정보 확인 및 리뷰 작성</li>
+<br>
+<div>
+  <img src="https://github.com/leejh8997/ARcohol/raw/master/assets/ImplementationScreen/order_detail_return.jpg" width="400" height="500" />
+</div>
+<li>주문 취소/교환: 상태에 따른 분기 처리 및 사유 입력</li>
+<br>
+<div>
+  <img src="https://github.com/leejh8997/ARcohol/raw/master/assets/ImplementationScreen/myrecipe_add.jpg" width="400" height="500" />
+</div>
+<li>마이 레시피: 커스텀 레시피 등록 및 목록</li>
+<br>
+<div>
+  <img src="https://github.com/leejh8997/ARcohol/raw/master/assets/ImplementationScreen/notice.jpg" width="400" height="500" />
+</div>
+<li>기타 정보 페이지: 개인정보처리방침, 공지사항, 고객센터, 서비스 이용약관 제공</li>
+
 </ul>
 </div>
 
