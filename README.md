@@ -14,7 +14,7 @@
 <div style="text-align:left;">
 <h2 style="border-bottom: 1px solid #d8dee4; color: #282d33;"> 🗓 개발 기간 </h2>  
 <ul>
-<li><h4>2025. 06. 09 ~ 2025. 06. 26</h4></li>
+<li><h4>2025. 06. 09 ~ 2025. 06. 27</h4></li>
 <li>기획 및 Firestore 구조 설계</li>
 <li>Flutter 기반 UI/UX 개발 및 기능 구현</li>
 <li>기능별 테스트 및 버그 수정</li>
