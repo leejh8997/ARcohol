@@ -112,6 +112,7 @@
 <div style="text-align:left;">
 <h2 style="border-bottom: 1px solid #d8dee4; color: #282d33;">📄 주요 기능 및 페이지</h2>
 <ul>
+![image](https://github.com/user-attachments/assets/c6f46f2a-a1ba-4ef8-a793-00d63f6f6a2d)
 <li>회원가입/로그인: Firebase Auth 기반 핸드폰 인증 및 소셜 로그인</li>
 <li>홈: 랜덤 배너/추천 레시피/인기 레시피/상품 목록 표시 (5개 + more)</li>
 <li>마이바: 인벤토리 기반 추천 레시피 표시</li>
