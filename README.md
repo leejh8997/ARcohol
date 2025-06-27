@@ -47,8 +47,8 @@
 
 <div style="text-align:left;">
 <h2 style="border-bottom: 1px solid #d8dee4; color: #282d33;">📕 발표 PPT</h2>
-<a href=":;javascript">▶ ARcohol 발표 PPT</a>
-  https://www.canva.com/design/DAGrgD_WFhk/4Q-WQzQSp_Nvs-kbYbeqvA/view
+<a href="https://www.canva.com/design/DAGrgD_WFhk/4Q-WQzQSp_Nvs-kbYbeqvA/view">▶ ARcohol 발표 PPT</a>
+  
 </div>
 
 <div style="text-align:left;">
